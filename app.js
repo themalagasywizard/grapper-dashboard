@@ -1,5 +1,12 @@
 const { useState, useEffect, useRef } = React;
-const { BrowserRouter: Router, Routes, Route, Link, useNavigate, useLocation } = ReactRouterDOM;
+
+// React Router components
+const Router = window.ReactRouterDOM.HashRouter;
+const Routes = window.ReactRouterDOM.Routes;
+const Route = window.ReactRouterDOM.Route;
+const Link = window.ReactRouterDOM.Link;
+const useNavigate = window.ReactRouterDOM.useNavigate;
+const useLocation = window.ReactRouterDOM.useLocation;
 
 // Mock data that matches the PRD structure
 const mockCampaigns = [
