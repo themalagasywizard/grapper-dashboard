@@ -15,7 +15,7 @@ const translations = {
         myTotalCampaigns: "My Total Campaigns",
         upcomingCampaigns: "Upcoming Campaigns",
         myTotalRevenue: "My Total Revenue",
-        myCampaignCalendar: "My Campaign Calendar (Date Fin)",
+        myCampaignCalendar: "My Campaign Calendar",
         myRecentCampaigns: "My Recent Campaigns",
         noCampaignsFound: "No campaigns found for your account.",
         checkAvailableUsers: "Check the \"Available Users\" tab to see valid email addresses.",
@@ -109,7 +109,7 @@ const translations = {
         myTotalCampaigns: "Mes campagnes totales",
         upcomingCampaigns: "Campagnes à venir",
         myTotalRevenue: "Mon chiffre d'affaires total",
-        myCampaignCalendar: "Mon calendrier de campagnes (Date Fin)",
+        myCampaignCalendar: "Mon calendrier de campagnes",
         myRecentCampaigns: "Mes campagnes récentes",
         noCampaignsFound: "Aucune campagne trouvée pour votre compte.",
         checkAvailableUsers: "Consultez l'onglet \"Utilisateurs disponibles\" pour voir les adresses e-mail valides.",
@@ -334,12 +334,10 @@ const Navigation = ({ user, onLogout, currentTab, setCurrentTab, userCampaigns, 
                         {/* Language Toggle Button */}
                         <button
                             onClick={toggleLanguage}
-                            className="flex items-center space-x-2 px-3 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition-colors"
+                            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                            title={language === 'en' ? 'Switch to French' : 'Passer à l\'anglais'}
                         >
-                            <span className="text-lg">{language === 'en' ? '🇫🇷' : '🇬🇧'}</span>
-                            <span className="text-sm font-medium">
-                                {language === 'en' ? t('french') : t('english')}
-                            </span>
+                            <span className="text-2xl">{language === 'en' ? '🇫🇷' : '🇬🇧'}</span>
                         </button>
                         
                         <span className="text-gray-700 hidden sm:inline">{t('welcome')}, {user.name}</span>
@@ -979,12 +977,10 @@ const Login = ({ onLogin, availableUsers, language, toggleLanguage }) => {
                     <div className="mt-4">
                         <button
                             onClick={toggleLanguage}
-                            className="inline-flex items-center space-x-2 px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg transition-colors"
+                            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                            title={language === 'en' ? 'Switch to French' : 'Passer à l\'anglais'}
                         >
-                            <span className="text-lg">{language === 'en' ? '🇫🇷' : '🇬🇧'}</span>
-                            <span className="text-sm font-medium">
-                                {language === 'en' ? t('french') : t('english')}
-                            </span>
+                            <span className="text-2xl">{language === 'en' ? '🇫🇷' : '🇬🇧'}</span>
                         </button>
                     </div>
                 </div>
