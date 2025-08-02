@@ -315,9 +315,11 @@ const Navigation = ({ user, onLogout, currentTab, setCurrentTab, userCampaigns, 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between items-center py-4">
                     <div className="flex items-center space-x-4">
-                        <div className="gradient-bg p-2 rounded-lg">
-                            <span className="text-white font-bold text-xl">G</span>
-                        </div>
+                        <img 
+                            src="./logograpper.jpg" 
+                            alt="Grapper Logo" 
+                            className="w-12 h-12 object-contain"
+                        />
                         <div>
                             <h1 className="text-2xl font-bold text-gray-900">Grapper</h1>
                             <p className="text-sm text-gray-500">
@@ -967,9 +969,11 @@ const Login = ({ onLogin, availableUsers, language, toggleLanguage }) => {
         <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
             <div className="max-w-md w-full space-y-8">
                 <div className="text-center">
-                    <div className="gradient-bg p-4 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                        <span className="text-white font-bold text-2xl">G</span>
-                    </div>
+                    <img 
+                        src="./logograpper.jpg" 
+                        alt="Grapper Logo" 
+                        className="w-20 h-20 mx-auto mb-4 object-contain"
+                    />
                     <h2 className="text-3xl font-bold text-gray-900">{t('welcomeToGrapper')}</h2>
                     <p className="mt-2 text-gray-600">{t('signInAccess')}</p>
                     
@@ -1108,9 +1112,11 @@ const App = () => {
         return (
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="text-center">
-                    <div className="gradient-bg p-4 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-                        <span className="text-white font-bold text-2xl">G</span>
-                    </div>
+                    <img 
+                        src="./logograpper.jpg" 
+                        alt="Grapper Logo" 
+                        className="w-20 h-20 mx-auto mb-4 object-contain animate-pulse"
+                    />
                     <h2 className="text-xl font-bold text-gray-900">{t('loadingCampaignData')}</h2>
                     <p className="text-gray-600">{t('parsingGoogleSheet')}</p>
                 </div>
