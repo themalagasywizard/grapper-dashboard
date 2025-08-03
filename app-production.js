@@ -207,7 +207,7 @@ const translations = {
 const GOOGLE_SHEETS_CONFIG = {
     API_KEY: 'AIzaSyBmsPFtjXrWN3EokBOJNuLdyUPeP69FrTI', // Your actual API key
     SPREADSHEET_ID: '1dX5oaY-vW6stUDknlJYsQhQiGkVZD1O9', // Your actual spreadsheet ID
-    RANGE: 'Global1!A:AC', // Adjust range as needed
+    RANGE: 'A:Z', // Try reading all columns from the first sheet
     DISCOVERY_DOC: 'https://sheets.googleapis.com/$discovery/rest?version=v4',
 };
 
@@ -235,15 +235,29 @@ class GoogleSheetsService {
                 throw new Error('Google API not loaded');
             }
 
-            await window.gapi.load('client', async () => {
-                await window.gapi.client.init({
-                    apiKey: GOOGLE_SHEETS_CONFIG.API_KEY,
-                    discoveryDocs: [GOOGLE_SHEETS_CONFIG.DISCOVERY_DOC],
+            return new Promise((resolve, reject) => {
+                window.gapi.load('client', async () => {
+                    try {
+                        await window.gapi.client.init({
+                            apiKey: GOOGLE_SHEETS_CONFIG.API_KEY,
+                            discoveryDocs: [GOOGLE_SHEETS_CONFIG.DISCOVERY_DOC],
+                        });
+                        
+                        // Wait a bit for the discovery document to load
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                        
+                        if (!window.gapi.client.sheets) {
+                            throw new Error('Google Sheets API not available after initialization');
+                        }
+                        
+                        this.isInitialized = true;
+                        resolve(true);
+                    } catch (error) {
+                        console.error('Error during GAPI client init:', error);
+                        reject(error);
+                    }
                 });
-                this.isInitialized = true;
             });
-
-            return true;
         } catch (error) {
             console.error('Failed to initialize Google Sheets API:', error);
             return false;
@@ -262,6 +276,11 @@ class GoogleSheetsService {
             // Check cache
             if (this.lastFetch && Date.now() - this.lastFetch.timestamp < this.cacheTimeout) {
                 return this.lastFetch.data;
+            }
+
+            // Alternative approach using fetch API if gapi fails
+            if (!window.gapi.client.sheets) {
+                return await this.fetchWithRestAPI();
             }
 
             const response = await window.gapi.client.sheets.spreadsheets.values.get({
@@ -293,6 +312,58 @@ class GoogleSheetsService {
             return data;
         } catch (error) {
             console.error('Error fetching Google Sheets data:', error);
+            throw error;
+        }
+    }
+
+    // Fallback method using REST API
+    async fetchWithRestAPI() {
+        try {
+            const url = `https://sheets.googleapis.com/v4/spreadsheets/${GOOGLE_SHEETS_CONFIG.SPREADSHEET_ID}/values/${GOOGLE_SHEETS_CONFIG.RANGE}?key=${GOOGLE_SHEETS_CONFIG.API_KEY}`;
+            
+            console.log('Fetching from URL:', url);
+            
+            const response = await fetch(url);
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('HTTP Error Response:', errorText);
+                throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+            }
+            
+            const data = await response.json();
+            console.log('Raw Google Sheets data:', data);
+            
+            const rows = data.values;
+            
+            if (!rows || rows.length === 0) {
+                throw new Error('No data found in spreadsheet');
+            }
+
+            console.log('First few rows:', rows.slice(0, 3));
+            console.log('Headers found:', rows[0]);
+
+            // Convert to object format
+            const headers = rows[0];
+            const formattedData = rows.slice(1).map(row => {
+                const obj = {};
+                headers.forEach((header, index) => {
+                    obj[header] = row[index] || '';
+                });
+                return obj;
+            });
+
+            console.log('Formatted data sample:', formattedData.slice(0, 2));
+            console.log('Total rows processed:', formattedData.length);
+
+            // Cache the result
+            this.lastFetch = {
+                data: formattedData,
+                timestamp: Date.now()
+            };
+
+            return formattedData;
+        } catch (error) {
+            console.error('Error with REST API fetch:', error);
             throw error;
         }
     }
@@ -339,40 +410,61 @@ const cleanCurrency = (amount) => {
 const extractUsersFromSheetData = (sheetData) => {
     const usersMap = new Map();
     
-    sheetData.forEach(row => {
-        const email = row['Mail'];
-        const talent = row['Talent'];
+    console.log('Extracting users from sheet data...');
+    console.log('Sample row for debugging:', sheetData[0]);
+    console.log('Available columns:', Object.keys(sheetData[0] || {}));
+    
+    sheetData.forEach((row, index) => {
+        // Email is in column T, Talent is in column A
+        const email = row['Mail'] || row[Object.keys(row)[19]]; // Column T (20th column, index 19)
+        const talent = row['Talent'] || row[Object.keys(row)[0]]; // Column A (1st column, index 0)
+        
+        if (index < 3) {
+            console.log(`Row ${index}: Email="${email}", Talent="${talent}"`);
+        }
         
         // Only process rows with valid email addresses (not empty, not #N/A)
         if (email && email.trim() !== '' && email !== '#N/A' && email.includes('@')) {
             if (!usersMap.has(email)) {
                 usersMap.set(email, {
                     email: email.trim(),
-                    name: talent.trim(),
+                    name: talent ? talent.trim() : 'Unknown User',
                     joinDate: convertFrenchDate(row['Date Création']) || '2024-01-01'
                 });
             }
         }
     });
     
-    return Array.from(usersMap.values());
+    const users = Array.from(usersMap.values());
+    console.log('Extracted users:', users);
+    return users;
 };
 
 // Data transformation function for Google Sheets data
 const transformSheetDataToCampaigns = (sheetData) => {
     return sheetData
-        .filter(row => row['Talent'] && row['Marque'] && row['Date Fin']) // Only rows with required data
+        .filter(row => {
+            // Check for talent (column A), brand (Marque), and date (Date Fin)
+            const talent = row['Talent'] || row[Object.keys(row)[0]];
+            const marque = row['Marque'];
+            const dateFin = row['Date Fin'];
+            return talent && marque && dateFin;
+        })
         .map((row, index) => {
             const dateFin = convertFrenchDate(row['Date Fin']);
             if (!dateFin) return null;
             
-            const userEmail = row['Mail'] && row['Mail'] !== '#N/A' && row['Mail'].includes('@') 
-                ? row['Mail'].trim() 
-                : `${row['Talent']?.toLowerCase().replace(/\s+/g, '.')}@example.com`;
+            // Email is in column T, Talent is in column A
+            const email = row['Mail'] || row[Object.keys(row)[19]]; // Column T
+            const talent = row['Talent'] || row[Object.keys(row)[0]]; // Column A
+            
+            const userEmail = email && email !== '#N/A' && email.includes('@') 
+                ? email.trim() 
+                : `${talent?.toLowerCase().replace(/\s+/g, '.')}@example.com`;
             
             return {
                 Campaign_ID: `sheet_${index}`,
-                Talent: row['Talent'] || '',
+                Talent: talent || '',
                 Influencer_Email: userEmail,
                 Date: dateFin,
                 Brand_Name: row['Marque'] || '',
