@@ -1369,13 +1369,13 @@ const App = () => {
             console.error('Error loading Google Sheets data:', error);
             
             // Provide more specific error messages
-            let errorMessage = error.message;
-            if (error.message.includes('403')) {
+            let errorMessage = error.message || 'Unknown error occurred';
+            if (errorMessage.includes('403')) {
                 errorMessage = 'API key access denied. Please check your Google Cloud Console API key restrictions and ensure your domain is authorized.';
-            } else if (error.message.includes('400')) {
+            } else if (errorMessage.includes('400')) {
                 errorMessage = 'Google Sheets access error. Please ensure your spreadsheet is shared as "Anyone with the link can view" and the sheet name/range is correct.';
-            } else if (error.message.includes('FAILED_PRECONDITION')) {
-                errorMessage = 'Google Sheets API configuration error. Please verify your API key has Google Sheets API enabled and proper permissions.';
+            } else if (errorMessage.includes('FAILED_PRECONDITION') || errorMessage.includes('This operation is not supported')) {
+                errorMessage = 'Invalid spreadsheet ID or document access error. Please verify your Google Sheets URL and ensure the document is a proper Google Sheets file.';
             }
             
             setError(errorMessage);
