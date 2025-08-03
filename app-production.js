@@ -664,7 +664,7 @@ const Dashboard = ({ campaigns, language }) => {
                     talent: campaign.Talent,
                     status: campaign.Status
                 },
-                backgroundColor: campaign.Status === 'Completed' ? '#22c55e' : '#6366f1', // Green for completed, indigo for upcoming
+                backgroundColor: campaign.Status === 'Completed' ? '#22c55e' : campaign.Status === 'Upcoming' ? '#6366f1' : '#6366f1', // Green for completed, purple for upcoming
                 borderColor: 'transparent',
                 textColor: '#ffffff'
             }));
