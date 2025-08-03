@@ -207,7 +207,7 @@ const translations = {
 const GOOGLE_SHEETS_CONFIG = {
     API_KEY: 'AIzaSyBmsPFtjXrWN3EokBOJNuLdyUPeP69FrTI', // Your actual API key
     SPREADSHEET_ID: '1dX5oaY-vW6stUDknlJYsQhQiGkVZD1O9', // Your actual spreadsheet ID
-    RANGE: 'A:Z', // Try reading all columns from the first sheet
+    RANGE: 'A1:Z1000', // Read specific range from first sheet
     DISCOVERY_DOC: 'https://sheets.googleapis.com/$discovery/rest?version=v4',
 };
 
@@ -278,38 +278,45 @@ class GoogleSheetsService {
                 return this.lastFetch.data;
             }
 
-            // Alternative approach using fetch API if gapi fails
-            if (!window.gapi.client.sheets) {
+            // Try REST API first (more reliable)
+            try {
                 return await this.fetchWithRestAPI();
-            }
+            } catch (restError) {
+                console.log('REST API failed, trying gapi client:', restError);
+                
+                // Alternative approach using gapi client
+                if (!window.gapi.client.sheets) {
+                    throw new Error('Both REST API and gapi client unavailable');
+                }
 
-            const response = await window.gapi.client.sheets.spreadsheets.values.get({
-                spreadsheetId: GOOGLE_SHEETS_CONFIG.SPREADSHEET_ID,
-                range: GOOGLE_SHEETS_CONFIG.RANGE,
-            });
-
-            const rows = response.result.values;
-            if (!rows || rows.length === 0) {
-                throw new Error('No data found in spreadsheet');
-            }
-
-            // Convert to object format
-            const headers = rows[0];
-            const data = rows.slice(1).map(row => {
-                const obj = {};
-                headers.forEach((header, index) => {
-                    obj[header] = row[index] || '';
+                const response = await window.gapi.client.sheets.spreadsheets.values.get({
+                    spreadsheetId: GOOGLE_SHEETS_CONFIG.SPREADSHEET_ID,
+                    range: GOOGLE_SHEETS_CONFIG.RANGE,
                 });
-                return obj;
-            });
 
-            // Cache the result
-            this.lastFetch = {
-                data: data,
-                timestamp: Date.now()
-            };
+                const rows = response.result.values;
+                if (!rows || rows.length === 0) {
+                    throw new Error('No data found in spreadsheet');
+                }
 
-            return data;
+                // Convert to object format
+                const headers = rows[0];
+                const data = rows.slice(1).map(row => {
+                    const obj = {};
+                    headers.forEach((header, index) => {
+                        obj[header] = row[index] || '';
+                    });
+                    return obj;
+                });
+
+                // Cache the result
+                this.lastFetch = {
+                    data: data,
+                    timestamp: Date.now()
+                };
+
+                return data;
+            }
         } catch (error) {
             console.error('Error fetching Google Sheets data:', error);
             throw error;
@@ -318,54 +325,73 @@ class GoogleSheetsService {
 
     // Fallback method using REST API
     async fetchWithRestAPI() {
-        try {
-            const url = `https://sheets.googleapis.com/v4/spreadsheets/${GOOGLE_SHEETS_CONFIG.SPREADSHEET_ID}/values/${GOOGLE_SHEETS_CONFIG.RANGE}?key=${GOOGLE_SHEETS_CONFIG.API_KEY}`;
-            
-            console.log('Fetching from URL:', url);
-            
-            const response = await fetch(url);
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('HTTP Error Response:', errorText);
-                throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
-            }
-            
-            const data = await response.json();
-            console.log('Raw Google Sheets data:', data);
-            
-            const rows = data.values;
-            
-            if (!rows || rows.length === 0) {
-                throw new Error('No data found in spreadsheet');
-            }
+        // Try different ranges/sheets in order of preference
+        const ranges = [
+            GOOGLE_SHEETS_CONFIG.RANGE,
+            'Sheet1!A1:Z1000',
+            'Global1!A1:Z1000',
+            'A1:Z1000'
+        ];
+        
+        for (const range of ranges) {
+            try {
+                const url = `https://sheets.googleapis.com/v4/spreadsheets/${GOOGLE_SHEETS_CONFIG.SPREADSHEET_ID}/values/${encodeURIComponent(range)}?key=${GOOGLE_SHEETS_CONFIG.API_KEY}`;
+                
+                console.log(`Trying range "${range}" with URL:`, url);
+                
+                const response = await fetch(url);
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error(`HTTP Error for range "${range}":`, errorText);
+                    
+                    // If it's a range issue, try next range
+                    if (response.status === 400) {
+                        continue;
+                    }
+                    
+                    throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+                }
+                
+                const data = await response.json();
+                console.log('Raw Google Sheets data:', data);
+                
+                const rows = data.values;
+                
+                if (!rows || rows.length === 0) {
+                    console.log(`No data found for range "${range}", trying next...`);
+                    continue;
+                }
 
-            console.log('First few rows:', rows.slice(0, 3));
-            console.log('Headers found:', rows[0]);
+                console.log('First few rows:', rows.slice(0, 3));
+                console.log('Headers found:', rows[0]);
 
-            // Convert to object format
-            const headers = rows[0];
-            const formattedData = rows.slice(1).map(row => {
-                const obj = {};
-                headers.forEach((header, index) => {
-                    obj[header] = row[index] || '';
+                // Convert to object format
+                const headers = rows[0];
+                const formattedData = rows.slice(1).map(row => {
+                    const obj = {};
+                    headers.forEach((header, index) => {
+                        obj[header] = row[index] || '';
+                    });
+                    return obj;
                 });
-                return obj;
-            });
 
-            console.log('Formatted data sample:', formattedData.slice(0, 2));
-            console.log('Total rows processed:', formattedData.length);
+                console.log('Formatted data sample:', formattedData.slice(0, 2));
+                console.log('Total rows processed:', formattedData.length);
 
-            // Cache the result
-            this.lastFetch = {
-                data: formattedData,
-                timestamp: Date.now()
-            };
+                // Cache the result
+                this.lastFetch = {
+                    data: formattedData,
+                    timestamp: Date.now()
+                };
 
-            return formattedData;
-        } catch (error) {
-            console.error('Error with REST API fetch:', error);
-            throw error;
+                return formattedData;
+            } catch (error) {
+                console.error(`Error with range "${range}":`, error);
+                // Continue to next range
+            }
         }
+        
+        throw new Error('Failed to fetch data from any available sheet range');
     }
 
     // Method to force refresh data
@@ -1341,7 +1367,18 @@ const App = () => {
             
         } catch (error) {
             console.error('Error loading Google Sheets data:', error);
-            setError(error.message);
+            
+            // Provide more specific error messages
+            let errorMessage = error.message;
+            if (error.message.includes('403')) {
+                errorMessage = 'API key access denied. Please check your Google Cloud Console API key restrictions and ensure your domain is authorized.';
+            } else if (error.message.includes('400')) {
+                errorMessage = 'Google Sheets access error. Please ensure your spreadsheet is shared as "Anyone with the link can view" and the sheet name/range is correct.';
+            } else if (error.message.includes('FAILED_PRECONDITION')) {
+                errorMessage = 'Google Sheets API configuration error. Please verify your API key has Google Sheets API enabled and proper permissions.';
+            }
+            
+            setError(errorMessage);
             setLoading(false);
         }
     };
@@ -1451,5 +1488,6 @@ const App = () => {
     );
 };
 
-// Render the app
-ReactDOM.render(<App />, document.getElementById('root')); 
+// Render the app using React 18 createRoot
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />); 
