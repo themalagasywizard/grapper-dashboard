@@ -99,7 +99,7 @@ Replace:
 
 ```javascript
 const GOOGLE_SHEETS_CONFIG = {
-    API_KEY: 'AIzaSyDxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+    API_KEY: 'AIzaSy...', // Your actual 39-character API key
     SPREADSHEET_ID: '1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms',
     RANGE: 'Global1!A:AC',
     DISCOVERY_DOC: 'https://sheets.googleapis.com/$discovery/rest?version=v4',

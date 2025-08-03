@@ -31,8 +31,8 @@ Click **"Add a variable"** and add these three variables:
 
 | Variable Name | Value | Example |
 |---|---|---|
-| `GOOGLE_SHEETS_API_KEY` | Your Google API key | `AIzaSyBmsPFtjXrWN3EokBOJNuLdyUPeP69FrTI` |
-| `GOOGLE_SHEETS_SPREADSHEET_ID` | Your sheet ID | `1SfNNCc4X71Ei0NBKJk59qsCD2T4sXyoTt6f0WUB8ACI` |
+| `GOOGLE_SHEETS_API_KEY` | Your Google API key | `AIzaSy...` (39 characters) |
+| `GOOGLE_SHEETS_SPREADSHEET_ID` | Your sheet ID | `1SfNNCc4X71...` (44 characters) |
 | `GOOGLE_SHEETS_RANGE` | Sheet range (optional) | `Global1!A1:AC2000` |
 
 ### **1.3 Save & Deploy**
@@ -107,7 +107,7 @@ Your client will need to:
 #### `GOOGLE_SHEETS_SPREADSHEET_ID`
 - **Purpose**: Identifies which Google Sheet to read
 - **Source**: From your Google Sheets URL
-- **Format**: `1SfNNCc4X71Ei0NBKJk59qsCD2T4sXyoTt6f0WUB8ACI`
+- **Format**: `1SfNNCc4X71...` (44 characters alphanumeric)
 
 #### `GOOGLE_SHEETS_RANGE` (Optional)
 - **Purpose**: Specifies which cells to read
