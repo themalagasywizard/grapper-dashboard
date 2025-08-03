@@ -507,6 +507,14 @@ const transformSheetDataToCampaigns = (sheetData) => {
                 ? email.trim() 
                 : `${talent?.toLowerCase().replace(/\s+/g, '.')}@example.com`;
             
+            const rawStatus = row['Status'] || '';
+            const isCompleted = rawStatus.toLowerCase().includes('fait') || 
+                              rawStatus.toLowerCase().includes('complete') || 
+                              rawStatus.toLowerCase().includes('terminé') ||
+                              rawStatus.toLowerCase().includes('fini');
+            
+            console.log(`Campaign ${row['Marque']}: Raw status="${rawStatus}", IsCompleted=${isCompleted}`);
+            
             return {
                 Campaign_ID: `sheet_${index}`,
                 Talent: talent || '',
@@ -514,7 +522,7 @@ const transformSheetDataToCampaigns = (sheetData) => {
                 Date: dateFin,
                 Brand_Name: row['Marque'] || '',
                 Revenue: cleanCurrency(row['Rémunération totale']),
-                Status: row['Status'] === 'Fait' ? 'Completed' : 'Upcoming',
+                Status: isCompleted ? 'Completed' : 'Upcoming',
                 DateCreation: convertFrenchDate(row['Date Création']),
                 Description: row['Description rapide de la demande'] || '',
                 Format: row['Format (influence vs UGC)'] || '',
@@ -655,19 +663,26 @@ const Dashboard = ({ campaigns, language }) => {
     useEffect(() => {
         if (calendarRef.current && !calendarInstance.current && window.FullCalendar) {
             // Prepare events for calendar using Date Fin
-            const events = campaigns.map(campaign => ({
-                id: campaign.Campaign_ID,
-                title: `${campaign.Brand_Name}`,
-                date: campaign.Date, // This is the Date Fin
-                extendedProps: {
-                    revenue: campaign.Revenue,
-                    talent: campaign.Talent,
-                    status: campaign.Status
-                },
-                backgroundColor: campaign.Status === 'Completed' ? '#22c55e' : campaign.Status === 'Upcoming' ? '#6366f1' : '#6366f1', // Green for completed, purple for upcoming
-                borderColor: 'transparent',
-                textColor: '#ffffff'
-            }));
+            const events = campaigns.map(campaign => {
+                const isCompleted = campaign.Status === 'Completed';
+                const backgroundColor = isCompleted ? '#22c55e' : '#6366f1'; // Green for completed, purple for upcoming
+                
+                console.log(`Calendar Event: ${campaign.Brand_Name} - Status: "${campaign.Status}" - Color: ${backgroundColor}`);
+                
+                return {
+                    id: campaign.Campaign_ID,
+                    title: `${campaign.Brand_Name}`,
+                    date: campaign.Date, // This is the Date Fin
+                    extendedProps: {
+                        revenue: campaign.Revenue,
+                        talent: campaign.Talent,
+                        status: campaign.Status
+                    },
+                    backgroundColor: backgroundColor,
+                    borderColor: 'transparent',
+                    textColor: '#ffffff'
+                };
+            });
 
             calendarInstance.current = new FullCalendar.Calendar(calendarRef.current, {
                 initialView: 'dayGridMonth',
