@@ -207,7 +207,7 @@ const translations = {
 const GOOGLE_SHEETS_CONFIG = {
     API_KEY: 'AIzaSyBmsPFtjXrWN3EokBOJNuLdyUPeP69FrTI', // Your actual API key
     SPREADSHEET_ID: '1dX5oaY-vW6stUDknlJYsQhQiGkVZD1O9', // Your actual spreadsheet ID
-    RANGE: 'A1:Z1000', // Read specific range from first sheet
+    RANGE: 'Global1!A1:AC2000', // Read from Global1 sheet with all columns including T (Mail)
     DISCOVERY_DOC: 'https://sheets.googleapis.com/$discovery/rest?version=v4',
 };
 
@@ -328,9 +328,10 @@ class GoogleSheetsService {
         // Try different ranges/sheets in order of preference
         const ranges = [
             GOOGLE_SHEETS_CONFIG.RANGE,
-            'Sheet1!A1:Z1000',
-            'Global1!A1:Z1000',
-            'A1:Z1000'
+            'Global1!A1:AC2000',
+            'Global1!A1:Z2000',
+            'Global1!A:AC',
+            'A1:AC2000'
         ];
         
         for (const range of ranges) {
@@ -441,18 +442,18 @@ const extractUsersFromSheetData = (sheetData) => {
     console.log('Available columns:', Object.keys(sheetData[0] || {}));
     
     sheetData.forEach((row, index) => {
-        // Email is in column T, Talent is in column A
-        const email = row['Mail'] || row[Object.keys(row)[19]]; // Column T (20th column, index 19)
-        const talent = row['Talent'] || row[Object.keys(row)[0]]; // Column A (1st column, index 0)
+        // Get email and talent from proper columns
+        const email = row['Mail']; // Column T - should be available by header name
+        const talent = row['Talent']; // Column A - should be available by header name
         
-        if (index < 3) {
-            console.log(`Row ${index}: Email="${email}", Talent="${talent}"`);
+        if (index < 5) {
+            console.log(`Row ${index}: Email="${email}", Talent="${talent}", Full row keys:`, Object.keys(row));
         }
         
         // Only process rows with valid email addresses (not empty, not #N/A)
         if (email && email.trim() !== '' && email !== '#N/A' && email.includes('@')) {
-            if (!usersMap.has(email)) {
-                usersMap.set(email, {
+            if (!usersMap.has(email.trim())) {
+                usersMap.set(email.trim(), {
                     email: email.trim(),
                     name: talent ? talent.trim() : 'Unknown User',
                     joinDate: convertFrenchDate(row['Date Création']) || '2024-01-01'
@@ -470,8 +471,8 @@ const extractUsersFromSheetData = (sheetData) => {
 const transformSheetDataToCampaigns = (sheetData) => {
     return sheetData
         .filter(row => {
-            // Check for talent (column A), brand (Marque), and date (Date Fin)
-            const talent = row['Talent'] || row[Object.keys(row)[0]];
+            // Check for talent, brand, and date
+            const talent = row['Talent'];
             const marque = row['Marque'];
             const dateFin = row['Date Fin'];
             return talent && marque && dateFin;
@@ -480,9 +481,9 @@ const transformSheetDataToCampaigns = (sheetData) => {
             const dateFin = convertFrenchDate(row['Date Fin']);
             if (!dateFin) return null;
             
-            // Email is in column T, Talent is in column A
-            const email = row['Mail'] || row[Object.keys(row)[19]]; // Column T
-            const talent = row['Talent'] || row[Object.keys(row)[0]]; // Column A
+            // Get email and talent from proper columns
+            const email = row['Mail'];
+            const talent = row['Talent'];
             
             const userEmail = email && email !== '#N/A' && email.includes('@') 
                 ? email.trim() 
