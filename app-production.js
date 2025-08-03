@@ -1143,15 +1143,65 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
             <head>
                 <title>Invoice ${invoiceData.invoiceNumber}</title>
                 <style>
-                    body { font-family: Arial, sans-serif; margin: 2cm; }
+                    @media screen {
+                        body { font-family: Arial, sans-serif; margin: 2cm; }
+                        .no-print { display: block; }
+                        .button-container { 
+                            position: fixed;
+                            top: 20px;
+                            right: 20px;
+                            display: flex;
+                            gap: 10px;
+                        }
+                        .action-button {
+                            padding: 10px 20px;
+                            border: none;
+                            border-radius: 5px;
+                            cursor: pointer;
+                            font-weight: bold;
+                            transition: opacity 0.2s;
+                        }
+                        .action-button:hover {
+                            opacity: 0.9;
+                        }
+                        .save-pdf {
+                            background-color: #2563eb;
+                            color: white;
+                        }
+                        .print {
+                            background-color: #059669;
+                            color: white;
+                        }
+                    }
+                    @media print {
+                        .no-print { display: none; }
+                        body { margin: 0; padding: 20px; }
+                    }
                     .header { text-align: center; margin-bottom: 2cm; }
                     .details { margin-bottom: 1cm; }
-                    .table { width: 100%; border-collapse: collapse; }
+                    .table { width: 100%; border-collapse: collapse; margin-bottom: 1cm; }
                     .table th, .table td { border: 1px solid #ddd; padding: 8px; }
-                    .total { text-align: right; font-weight: bold; }
+                    .total { text-align: right; font-weight: bold; margin-bottom: 1cm; }
+                    .footer { text-align: center; color: #666; font-size: 0.9em; }
                 </style>
+                <script>
+                    function printInvoice() {
+                        window.print();
+                    }
+                    
+                    function savePDF() {
+                        document.querySelector('.button-container').style.display = 'none';
+                        window.print();
+                        document.querySelector('.button-container').style.display = 'flex';
+                    }
+                </script>
             </head>
             <body>
+                <div class="no-print button-container">
+                    <button onclick="savePDF()" class="action-button save-pdf">💾 Save as PDF</button>
+                    <button onclick="printInvoice()" class="action-button print">🖨️ Print</button>
+                </div>
+                
                 <div class="header">
                     <h1>Invoice</h1>
                     <p>From: ${user.name} (${user.email})</p>
@@ -1177,7 +1227,10 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                     </tbody>
                 </table>
                 <p class="total">Total: €${invoiceData.amount}</p>
-                <p>Thank you for your business!</p>
+                <div class="footer">
+                    <p>Thank you for your business!</p>
+                    <p>Generated via Grapper Dashboard</p>
+                </div>
             </body>
             </html>
         `);
