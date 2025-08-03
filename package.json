@@ -1,0 +1,30 @@
+{
+  "name": "grapper-dashboard",
+  "version": "1.0.0",
+  "description": "Grapper Influencer Dashboard with secure Google Sheets integration",
+  "main": "index.html",
+  "scripts": {
+    "start": "netlify dev",
+    "build": "echo 'Static site - no build needed'",
+    "test": "echo 'No tests specified'"
+  },
+  "dependencies": {
+    "node-fetch": "^2.6.7"
+  },
+  "devDependencies": {
+    "netlify-cli": "^17.0.0"
+  },
+  "keywords": [
+    "dashboard",
+    "influencer",
+    "google-sheets",
+    "netlify",
+    "serverless"
+  ],
+  "author": "Grapper Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/themalagasywizard/grapper-dashboard.git"
+  }
+} 

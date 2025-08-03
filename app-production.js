@@ -222,10 +222,11 @@ const translations = {
 
 // Google Sheets API Configuration
 // IMPORTANT: Replace these with your actual values
+// Secure configuration - API keys now stored as environment variables
 const GOOGLE_SHEETS_CONFIG = {
-    API_KEY: 'AIzaSyBmsPFtjXrWN3EokBOJNuLdyUPeP69FrTI', // Your actual API key
-    SPREADSHEET_ID: '1SfNNCc4X71Ei0NBKJk59qsCD2T4sXyoTt6f0WUB8ACI', // Native Google Sheets ID
-    RANGE: 'Global1!A1:AC2000', // Read from Global1 sheet with all columns including T (Mail)
+    // API calls now go through secure Netlify serverless function
+    NETLIFY_FUNCTION_URL: '/.netlify/functions/google-sheets',
+    // Fallback for development - will be removed in production
     DISCOVERY_DOC: 'https://sheets.googleapis.com/$discovery/rest?version=v4',
 };
 
@@ -284,133 +285,75 @@ class GoogleSheetsService {
 
     async fetchSheetData() {
         try {
-            if (!this.isInitialized) {
-                const initialized = await this.initialize();
-                if (!initialized) {
-                    throw new Error('Failed to initialize Google Sheets API');
-                }
-            }
-
             // Check cache
             if (this.lastFetch && Date.now() - this.lastFetch.timestamp < this.cacheTimeout) {
+                console.log('Using cached data');
                 return this.lastFetch.data;
             }
 
-            // Try REST API first (more reliable)
-            try {
-                return await this.fetchWithRestAPI();
-            } catch (restError) {
-                console.log('REST API failed, trying gapi client:', restError);
-                
-                // Alternative approach using gapi client
-                if (!window.gapi.client.sheets) {
-                    throw new Error('Both REST API and gapi client unavailable');
-                }
-
-                const response = await window.gapi.client.sheets.spreadsheets.values.get({
-                    spreadsheetId: GOOGLE_SHEETS_CONFIG.SPREADSHEET_ID,
-                    range: GOOGLE_SHEETS_CONFIG.RANGE,
+            // Use secure Netlify serverless function
+            console.log('Fetching data via secure serverless function...');
+            const response = await fetch(GOOGLE_SHEETS_CONFIG.NETLIFY_FUNCTION_URL);
+            
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Serverless function error:', {
+                    status: response.status,
+                    statusText: response.statusText,
+                    error: errorText
                 });
-
-                const rows = response.result.values;
-                if (!rows || rows.length === 0) {
-                    throw new Error('No data found in spreadsheet');
-                }
-
-                // Convert to object format
-                const headers = rows[0];
-                const data = rows.slice(1).map(row => {
-                    const obj = {};
-                    headers.forEach((header, index) => {
-                        obj[header] = row[index] || '';
-                    });
-                    return obj;
-                });
-
-                // Cache the result
-                this.lastFetch = {
-                    data: data,
-                    timestamp: Date.now()
-                };
-
-                return data;
+                throw new Error(`Serverless function error: ${response.status} - ${errorText}`);
             }
+
+            const result = await response.json();
+            
+            if (!result.success) {
+                console.error('Function returned error:', result);
+                throw new Error(result.error || 'Unknown serverless function error');
+            }
+
+            const rows = result.data;
+            if (!rows || rows.length === 0) {
+                throw new Error('No data found in spreadsheet');
+            }
+
+            console.log('Raw serverless function data:', {
+                rows: rows.length,
+                timestamp: result.timestamp
+            });
+
+            // Convert to object format
+            const headers = rows[0];
+            const data = rows.slice(1).map(row => {
+                const obj = {};
+                headers.forEach((header, index) => {
+                    obj[header] = row[index] || '';
+                });
+                return obj;
+            });
+
+            console.log('Processed data:', {
+                totalRows: data.length,
+                sampleRow: data[0],
+                headers: headers
+            });
+
+            // Cache the result
+            this.lastFetch = {
+                data: data,
+                timestamp: Date.now()
+            };
+
+            return data;
         } catch (error) {
             console.error('Error fetching Google Sheets data:', error);
             throw error;
         }
     }
 
-    // Fallback method using REST API
+    // Legacy method - now replaced by secure serverless function
     async fetchWithRestAPI() {
-        // Try different ranges/sheets in order of preference
-        const ranges = [
-            GOOGLE_SHEETS_CONFIG.RANGE,
-            'Global1!A1:AC2000',
-            'Global1!A1:Z2000',
-            'Global1!A:AC',
-            'A1:AC2000'
-        ];
-        
-        for (const range of ranges) {
-            try {
-                const url = `https://sheets.googleapis.com/v4/spreadsheets/${GOOGLE_SHEETS_CONFIG.SPREADSHEET_ID}/values/${encodeURIComponent(range)}?key=${GOOGLE_SHEETS_CONFIG.API_KEY}`;
-                
-                console.log(`Trying range "${range}" with URL:`, url);
-                
-                const response = await fetch(url);
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    console.error(`HTTP Error for range "${range}":`, errorText);
-                    
-                    // If it's a range issue, try next range
-                    if (response.status === 400) {
-                        continue;
-                    }
-                    
-                    throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
-                }
-                
-                const data = await response.json();
-                console.log('Raw Google Sheets data:', data);
-                
-                const rows = data.values;
-                
-                if (!rows || rows.length === 0) {
-                    console.log(`No data found for range "${range}", trying next...`);
-                    continue;
-                }
-
-                console.log('First few rows:', rows.slice(0, 3));
-                console.log('Headers found:', rows[0]);
-
-                // Convert to object format
-                const headers = rows[0];
-                const formattedData = rows.slice(1).map(row => {
-                    const obj = {};
-                    headers.forEach((header, index) => {
-                        obj[header] = row[index] || '';
-                    });
-                    return obj;
-                });
-
-                console.log('Formatted data sample:', formattedData.slice(0, 2));
-                console.log('Total rows processed:', formattedData.length);
-
-                // Cache the result
-                this.lastFetch = {
-                    data: formattedData,
-                    timestamp: Date.now()
-                };
-
-                return formattedData;
-            } catch (error) {
-                console.error(`Error with range "${range}":`, error);
-                // Continue to next range
-            }
-        }
-        
-        throw new Error('Failed to fetch data from any available sheet range');
+        throw new Error('Direct REST API calls are disabled for security. Use serverless function instead.');
     }
 
     // Method to force refresh data
@@ -1622,13 +1565,7 @@ const App = () => {
 
     // Initial load on component mount
     useEffect(() => {
-        // Check if Google API is available
-        if (GOOGLE_SHEETS_CONFIG.API_KEY === 'YOUR_GOOGLE_API_KEY') {
-            setError('Google Sheets API configuration required. Please set your API key and spreadsheet ID.');
-            setLoading(false);
-            return;
-        }
-        
+        // No API key validation needed - using secure serverless function
         loadSheetData();
     }, []);
 

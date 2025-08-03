@@ -1,0 +1,36 @@
+[build]
+  # No build command needed for static site
+  command = ""
+  # Serve files from root directory
+  publish = "."
+  # Functions directory
+  functions = "netlify/functions"
+
+[functions]
+  # Function timeout (max 10 seconds for Starter plan)
+  timeout = 10
+  # Memory allocation (128MB default)
+  memory = 128
+
+# Headers for security
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+# Redirect rules for SPA
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+  conditions = {Role = ["admin"]}
+
+# Environment variable settings
+[context.production.environment]
+  NODE_ENV = "production"
+
+[context.deploy-preview.environment]
+  NODE_ENV = "development" 
