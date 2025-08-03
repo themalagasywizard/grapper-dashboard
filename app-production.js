@@ -206,7 +206,7 @@ const translations = {
 // IMPORTANT: Replace these with your actual values
 const GOOGLE_SHEETS_CONFIG = {
     API_KEY: 'AIzaSyBmsPFtjXrWN3EokBOJNuLdyUPeP69FrTI', // Your actual API key
-    SPREADSHEET_ID: '1dX5oaY-vW6stUDknlJYsQhQiGkVZD1O9', // Your actual spreadsheet ID
+    SPREADSHEET_ID: '1SfNNCc4X71Ei0NBKJk59qsCD2T4sXyoTt6f0WUB8ACI', // Native Google Sheets ID
     RANGE: 'Global1!A1:AC2000', // Read from Global1 sheet with all columns including T (Mail)
     DISCOVERY_DOC: 'https://sheets.googleapis.com/$discovery/rest?version=v4',
 };
