@@ -99,7 +99,16 @@ const translations = {
         // Language
         language: "Language",
         english: "English",
-        french: "Français"
+        french: "Français",
+        invoiceGenerator: "Invoice Generator",
+        invoiceNumber: "Invoice Number",
+        date: "Date",
+        amount: "Amount (€)",
+        description: "Description",
+        agentName: "Agent Name",
+        agentAddress: "Agent Address",
+        generateInvoice: "Generate & Preview Invoice",
+        invoiceDescription: "Campaign Collaboration Services",
     },
     fr: {
         // Header & Navigation
@@ -198,7 +207,16 @@ const translations = {
         // Language
         language: "Langue",
         english: "English",
-        french: "Français"
+        french: "Français",
+        invoiceGenerator: "Générateur de facture",
+        invoiceNumber: "Numéro de facture",
+        date: "Date",
+        amount: "Montant (€)",
+        description: "Description",
+        agentName: "Nom de l'agent",
+        agentAddress: "Adresse de l'agent",
+        generateInvoice: "Générer et prévisualiser la facture",
+        invoiceDescription: "Services de collaboration de campagne",
     }
 };
 
@@ -610,14 +628,14 @@ const Navigation = ({ user, onLogout, currentTab, setCurrentTab, userCampaigns, 
                         👤 {t('profile')}
                     </button>
                     <button
-                        onClick={() => setCurrentTab('users')}
+                        onClick={() => setCurrentTab('invoices')}
                         className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                            currentTab === 'users'
+                            currentTab === 'invoices'
                                 ? 'border-blue-500 text-blue-600'
                                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
                         }`}
                     >
-                        🔐 {t('availableUsers')}
+                        💳 {t('invoiceGenerator') || 'Invoices'}
                     </button>
                 </div>
             </div>
@@ -646,7 +664,7 @@ const Dashboard = ({ campaigns, language }) => {
                     talent: campaign.Talent,
                     status: campaign.Status
                 },
-                backgroundColor: campaign.Status === 'Completed' ? '#10b981' : '#6366f1',
+                backgroundColor: campaign.Status === 'Completed' ? '#22c55e' : '#6366f1', // Green for completed, indigo for upcoming
                 borderColor: 'transparent',
                 textColor: '#ffffff'
             }));
@@ -1102,6 +1120,156 @@ const Profile = ({ user, campaigns, language }) => {
     );
 };
 
+// Invoice Generator Component
+const InvoiceGenerator = ({ user, campaigns, language }) => {
+    const { t } = useTranslation(language);
+    const [invoiceData, setInvoiceData] = useState({
+        invoiceNumber: 'INV-' + Date.now().toString().slice(-6),
+        date: new Date().toISOString().split('T')[0],
+        amount: campaigns.reduce((sum, c) => sum + c.Revenue, 0).toFixed(2),
+        description: t('invoiceDescription') || 'Campaign Collaboration Services',
+        agentName: t('agentName') || 'Grapper Agency',
+        agentAddress: t('agentAddress') || '123 Agency Street, Paris, France'
+    });
+
+    const handleChange = (e) => {
+        setInvoiceData({ ...invoiceData, [e.target.name]: e.target.value });
+    };
+
+    const generateInvoice = () => {
+        const invoiceWindow = window.open('', '_blank');
+        invoiceWindow.document.write(`
+            <html>
+            <head>
+                <title>Invoice ${invoiceData.invoiceNumber}</title>
+                <style>
+                    body { font-family: Arial, sans-serif; margin: 2cm; }
+                    .header { text-align: center; margin-bottom: 2cm; }
+                    .details { margin-bottom: 1cm; }
+                    .table { width: 100%; border-collapse: collapse; }
+                    .table th, .table td { border: 1px solid #ddd; padding: 8px; }
+                    .total { text-align: right; font-weight: bold; }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h1>Invoice</h1>
+                    <p>From: ${user.name} (${user.email})</p>
+                    <p>To: ${invoiceData.agentName}</p>
+                    <p>Address: ${invoiceData.agentAddress}</p>
+                </div>
+                <div class="details">
+                    <p>Invoice Number: ${invoiceData.invoiceNumber}</p>
+                    <p>Date: ${invoiceData.date}</p>
+                </div>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Description</th>
+                            <th>Amount (€)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>${invoiceData.description}</td>
+                            <td>${invoiceData.amount}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p class="total">Total: €${invoiceData.amount}</p>
+                <p>Thank you for your business!</p>
+            </body>
+            </html>
+        `);
+        invoiceWindow.document.close();
+    };
+
+    return (
+        <div className="space-y-6">
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                <h2 className="text-xl font-bold text-gray-900 mb-4">{t('invoiceGenerator') || 'Generate Invoice'}</h2>
+                <p className="text-gray-600 mb-6">{t('invoiceInstructions') || 'Edit the details below to generate your invoice'}</p>
+                
+                <form className="space-y-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('invoiceNumber') || 'Invoice Number'}</label>
+                        <input
+                            type="text"
+                            name="invoiceNumber"
+                            value={invoiceData.invoiceNumber}
+                            onChange={handleChange}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                    </div>
+                    
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('date') || 'Date'}</label>
+                        <input
+                            type="date"
+                            name="date"
+                            value={invoiceData.date}
+                            onChange={handleChange}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                    </div>
+                    
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('amount') || 'Amount (€)'}</label>
+                        <input
+                            type="number"
+                            name="amount"
+                            value={invoiceData.amount}
+                            onChange={handleChange}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                    </div>
+                    
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('description') || 'Description'}</label>
+                        <textarea
+                            name="description"
+                            value={invoiceData.description}
+                            onChange={handleChange}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            rows="3"
+                        />
+                    </div>
+                    
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('agentName') || 'Agent Name'}</label>
+                        <input
+                            type="text"
+                            name="agentName"
+                            value={invoiceData.agentName}
+                            onChange={handleChange}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                    </div>
+                    
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('agentAddress') || 'Agent Address'}</label>
+                        <input
+                            type="text"
+                            name="agentAddress"
+                            value={invoiceData.agentAddress}
+                            onChange={handleChange}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                    </div>
+                    
+                    <button
+                        type="button"
+                        onClick={generateInvoice}
+                        className="gradient-bg text-white px-6 py-3 rounded-lg hover:opacity-90 transition-opacity"
+                    >
+                        {t('generateInvoice') || 'Generate & Preview Invoice'}
+                    </button>
+                </form>
+            </div>
+        </div>
+    );
+};
+
 // Available Users Component (for debugging/demo)
 const AvailableUsers = ({ users, language }) => {
     const { t } = useTranslation(language);
@@ -1459,8 +1627,8 @@ const App = () => {
                 return <History campaigns={userCampaigns} language={language} />;
             case 'profile':
                 return <Profile user={currentUser} campaigns={userCampaigns} language={language} />;
-            case 'users':
-                return <AvailableUsers users={availableUsers} language={language} />;
+            case 'invoices':
+                return <InvoiceGenerator user={currentUser} campaigns={userCampaigns} language={language} />;
             default:
                 return <Dashboard campaigns={userCampaigns} language={language} />;
         }
