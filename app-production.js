@@ -504,7 +504,6 @@ const Navigation = ({ user, onLogout, currentTab, setCurrentTab, userCampaigns, 
                                 {currentTab === 'history' && t('history')}
                                 {currentTab === 'profile' && t('profile')}
                                 {currentTab === 'users' && t('availableUsers')}
-                                {userCampaigns.length > 0 && ` • ${userCampaigns.length} campaigns • €${totalRevenue.toLocaleString()}`}
                             </p>
                         </div>
                     </div>
@@ -632,7 +631,7 @@ const Dashboard = ({ campaigns, language }) => {
             });
 
             calendarInstance.current = new FullCalendar.Calendar(calendarRef.current, {
-                initialView: 'upcomingList',
+                initialView: 'dayGridMonth',
                 headerToolbar: {
                     left: 'prev,next today',
                     center: 'title',
@@ -1249,7 +1248,7 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
         <div className="space-y-6">
             <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
                 <h2 className="text-xl font-bold text-gray-900 mb-4">{t('invoiceGenerator') || 'Generate Invoice'}</h2>
-                <p className="text-gray-600 mb-6">{t('invoiceInstructions') || 'Edit the details below to generate your invoice'}</p>
+    
                 
                 <form className="space-y-4">
                     <div>
