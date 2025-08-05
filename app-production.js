@@ -646,8 +646,18 @@ const Dashboard = ({ campaigns, language }) => {
                     }
                 },
                 events: function(fetchInfo, successCallback, failureCallback) {
-                    // Use fetchInfo to get current view type - more reliable than calendarInstance
-                    const currentView = fetchInfo.view.type;
+                    // Safely get current view type with fallback
+                    let currentView = 'upcomingList'; // Default to upcomingList
+                    
+                    try {
+                        if (fetchInfo && fetchInfo.view && fetchInfo.view.type) {
+                            currentView = fetchInfo.view.type;
+                        } else if (calendarInstance.current && calendarInstance.current.view) {
+                            currentView = calendarInstance.current.view.type;
+                        }
+                    } catch (error) {
+                        console.log('View type detection fallback, using default:', currentView);
+                    }
                     
                     if (currentView === 'upcomingList') {
                         // For list view: only upcoming events from today onwards, sorted chronologically
@@ -657,6 +667,7 @@ const Dashboard = ({ campaigns, language }) => {
                                 return eventDate >= today;
                             })
                             .sort((a, b) => new Date(a.date) - new Date(b.date));
+                        console.log(`List view: Showing ${upcomingEvents.length} upcoming events`);
                         successCallback(upcomingEvents);
                     } else {
                         // For calendar view (dayGridMonth): ALL events (past and future)
