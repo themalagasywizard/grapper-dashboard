@@ -801,15 +801,15 @@ const History = ({ campaigns, language }) => {
     return (
         <div className="space-y-6">
             {/* Summary Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm font-medium text-gray-600">{t('myCampaigns')}</p>
+                            <p className="text-sm font-medium text-gray-600">{t('myTotalCampaigns')}</p>
                             <p className="text-3xl font-bold text-gray-900">{campaigns.length}</p>
                         </div>
                         <div className="gradient-bg p-3 rounded-lg">
-                            <span className="text-white text-xl">📊</span>
+                            <span className="text-white text-xl">🚀</span>
                         </div>
                     </div>
                 </div>
@@ -817,11 +817,11 @@ const History = ({ campaigns, language }) => {
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm font-medium text-gray-600">{t('completed')}</p>
-                            <p className="text-3xl font-bold text-gray-900">{completedCampaigns.length}</p>
+                            <p className="text-sm font-medium text-gray-600">{t('upcomingCampaigns')}</p>
+                            <p className="text-3xl font-bold text-gray-900">{campaigns.filter(c => c.Status === 'Upcoming').length}</p>
                         </div>
                         <div className="gradient-bg-success p-3 rounded-lg">
-                            <span className="text-white text-xl">✅</span>
+                            <span className="text-white text-xl">⏰</span>
                         </div>
                     </div>
                 </div>
@@ -829,16 +829,14 @@ const History = ({ campaigns, language }) => {
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
                     <div className="flex items-center justify-between">
                         <div>
-                            <p className="text-sm font-medium text-gray-600">{t('myRevenue')}</p>
+                            <p className="text-sm font-medium text-gray-600">{t('myTotalRevenue')}</p>
                             <p className="text-3xl font-bold text-gray-900">€{totalRevenue.toLocaleString()}</p>
                         </div>
                         <div className="gradient-bg-light p-3 rounded-lg">
-                            <span className="text-white text-xl">💎</span>
+                            <span className="text-white text-xl">💰</span>
                         </div>
                     </div>
                 </div>
-                
-                {/* Removed AVG Revenue as requested */}
             </div>
 
             {/* Filters and Controls */}
@@ -1006,38 +1004,42 @@ const Profile = ({ user, campaigns, language }) => {
             </div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                    <div className="text-center">
-                        <div className="gradient-bg p-3 rounded-lg inline-block mb-3">
-                            <span className="text-white text-xl">🏆</span>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm font-medium text-gray-600">{t('myTotalCampaigns')}</p>
+                            <p className="text-3xl font-bold text-gray-900">{campaigns.length}</p>
                         </div>
-                        <p className="text-2xl font-bold text-gray-900">{campaigns.length}</p>
-                        <p className="text-sm text-gray-600">{t('myCampaigns')}</p>
+                        <div className="gradient-bg p-3 rounded-lg">
+                            <span className="text-white text-xl">🚀</span>
+                        </div>
                     </div>
                 </div>
                 
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                    <div className="text-center">
-                        <div className="gradient-bg-success p-3 rounded-lg inline-block mb-3">
-                            <span className="text-white text-xl">✅</span>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm font-medium text-gray-600">{t('upcomingCampaigns')}</p>
+                            <p className="text-3xl font-bold text-gray-900">{campaigns.filter(c => c.Status === 'Upcoming').length}</p>
                         </div>
-                        <p className="text-2xl font-bold text-gray-900">{completedCampaigns.length}</p>
-                        <p className="text-sm text-gray-600">{t('completed')}</p>
+                        <div className="gradient-bg-success p-3 rounded-lg">
+                            <span className="text-white text-xl">⏰</span>
+                        </div>
                     </div>
                 </div>
                 
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                    <div className="text-center">
-                        <div className="gradient-bg-light p-3 rounded-lg inline-block mb-3">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <p className="text-sm font-medium text-gray-600">{t('myTotalRevenue')}</p>
+                            <p className="text-3xl font-bold text-gray-900">€{totalRevenue.toLocaleString()}</p>
+                        </div>
+                        <div className="gradient-bg-light p-3 rounded-lg">
                             <span className="text-white text-xl">💰</span>
                         </div>
-                        <p className="text-2xl font-bold text-gray-900">€{totalRevenue.toLocaleString()}</p>
-                        <p className="text-sm text-gray-600">{t('totalEarned')}</p>
                     </div>
                 </div>
-                
-                {/* Removed AVG per Campaign as requested */}
             </div>
 
             {/* Top Brands */}
