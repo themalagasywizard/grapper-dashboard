@@ -713,7 +713,10 @@ const Dashboard = ({ campaigns, language }) => {
                     </div>
                 ) : (
                     <div className="space-y-3">
-                        {campaigns.slice(0, 5).map((campaign) => (
+                        {[...campaigns]
+                            .sort((a, b) => new Date(b.Date) - new Date(a.Date))
+                            .slice(0, 5)
+                            .map((campaign) => (
                             <div key={campaign.Campaign_ID} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                                 <div className="flex items-center space-x-4">
                                     <div className="gradient-bg p-2 rounded-lg">
@@ -1044,15 +1047,7 @@ const Profile = ({ user, campaigns, language }) => {
                     </div>
                 </div>
                 
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                    <div className="text-center">
-                        <div className="gradient-bg p-3 rounded-lg inline-block mb-3">
-                            <span className="text-white text-xl">📊</span>
-                        </div>
-                        <p className="text-2xl font-bold text-gray-900">€{Math.round(avgRevenue).toLocaleString()}</p>
-                        <p className="text-sm text-gray-600">{t('avgPerCampaign')}</p>
-                    </div>
-                </div>
+                {/* Removed AVG per Campaign as requested */}
             </div>
 
             {/* Top Brands */}
