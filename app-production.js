@@ -838,17 +838,7 @@ const History = ({ campaigns, language }) => {
                     </div>
                 </div>
                 
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm font-medium text-gray-600">{t('avgRevenue')}</p>
-                            <p className="text-3xl font-bold text-gray-900">€{Math.round(totalRevenue / campaigns.length || 0).toLocaleString()}</p>
-                        </div>
-                        <div className="gradient-bg p-3 rounded-lg">
-                            <span className="text-white text-xl">📈</span>
-                        </div>
-                    </div>
-                </div>
+                {/* Removed AVG Revenue as requested */}
             </div>
 
             {/* Filters and Controls */}
