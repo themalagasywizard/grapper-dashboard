@@ -605,36 +605,44 @@ const Dashboard = ({ campaigns, language }) => {
     
     useEffect(() => {
         if (calendarRef.current && !calendarInstance.current && window.FullCalendar) {
-            // Prepare events for calendar using Date Fin
-            const events = campaigns.map(campaign => {
-                const isCompleted = campaign.Status === 'Completed';
-                const backgroundColor = isCompleted ? '#22c55e' : '#6366f1'; // Green for completed, purple for upcoming
-                
-                console.log(`Calendar Event: ${campaign.Brand_Name} - Status: "${campaign.Status}" - Color: ${backgroundColor}`);
-                
-                return {
-                    id: campaign.Campaign_ID,
-                    title: `${campaign.Brand_Name}`,
-                    date: campaign.Date, // This is the Date Fin
-                    extendedProps: {
-                        revenue: campaign.Revenue,
-                        talent: campaign.Talent,
-                        status: campaign.Status
-                    },
-                    backgroundColor: backgroundColor,
-                    borderColor: 'transparent',
-                    textColor: '#ffffff'
-                };
-            });
+            // Prepare upcoming events for calendar starting from today
+            const today = new Date();
+            today.setHours(0, 0, 0, 0); // Set to start of today
+            
+            const upcomingEvents = campaigns
+                .filter(campaign => {
+                    const eventDate = new Date(campaign.Date);
+                    return eventDate >= today; // Only show events from today onwards
+                })
+                .map(campaign => {
+                    const isCompleted = campaign.Status === 'Completed';
+                    const backgroundColor = isCompleted ? '#22c55e' : '#6366f1'; // Green for completed, purple for upcoming
+                    
+                    console.log(`Calendar Event: ${campaign.Brand_Name} - Status: "${campaign.Status}" - Color: ${backgroundColor}`);
+                    
+                    return {
+                        id: campaign.Campaign_ID,
+                        title: `${campaign.Brand_Name}`,
+                        date: campaign.Date, // This is the Date Fin
+                        extendedProps: {
+                            revenue: campaign.Revenue,
+                            talent: campaign.Talent,
+                            status: campaign.Status
+                        },
+                        backgroundColor: backgroundColor,
+                        borderColor: 'transparent',
+                        textColor: '#ffffff'
+                    };
+                });
 
             calendarInstance.current = new FullCalendar.Calendar(calendarRef.current, {
-                initialView: 'dayGridMonth',
+                initialView: 'listMonth',
                 headerToolbar: {
                     left: 'prev,next today',
                     center: 'title',
-                    right: 'dayGridMonth,listWeek'
+                    right: 'dayGridMonth,listWeek,listMonth'
                 },
-                events: events,
+                events: upcomingEvents,
                 eventClick: function(info) {
                     const campaign = campaigns.find(c => c.Campaign_ID === info.event.id);
                     if (campaign) {
@@ -642,7 +650,21 @@ const Dashboard = ({ campaigns, language }) => {
                     }
                 },
                 height: 'auto',
-                eventDisplay: 'block'
+                eventDisplay: 'block',
+                listDayFormat: { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' },
+                listDaySideFormat: false,
+                noEventsContent: t('noCampaignsFound') || 'No upcoming campaigns',
+                eventDidMount: function(info) {
+                    // Add revenue information to list view events
+                    if (info.view.type.includes('list')) {
+                        const campaign = campaigns.find(c => c.Campaign_ID === info.event.id);
+                        if (campaign) {
+                            info.el.querySelector('.fc-list-event-title').innerHTML = 
+                                `<strong>${campaign.Brand_Name}</strong><br/>
+                                <small style="color: #6b7280;">€${campaign.Revenue.toLocaleString()} • ${campaign.Status}</small>`;
+                        }
+                    }
+                }
             });
             
             calendarInstance.current.render();
