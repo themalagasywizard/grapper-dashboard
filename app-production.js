@@ -468,48 +468,56 @@ const buildUsersFromLoginEmails = (emails, sheetData) => {
 const transformSheetDataToCampaigns = (sheetData) => {
     return sheetData
         .filter(row => {
-            // Check for talent, brand, and date
-            const talent = row['Talent'];
+            // Include any row that has a brand and some user identifier (Talent or Mail)
             const marque = row['Marque'];
-            const dateFin = row['Date Fin'];
-            return talent && marque && dateFin;
+            const talentValue = row['Talent'] || '';
+            const mailValue = row['Mail'] || '';
+            const emailCandidate = (talentValue.includes('@') ? talentValue : mailValue).trim();
+            return marque && emailCandidate;
         })
         .map((row, index) => {
+            // Prefer user email from Talent if it's an email, else from Mail, else derive
+            const talent = row['Talent'] || '';
+            const mail = row['Mail'] || '';
+            let userEmail = '';
+            if (talent.includes('@')) {
+                userEmail = talent.trim();
+            } else if (mail && mail.includes('@')) {
+                userEmail = mail.trim();
+            } else if (talent) {
+                userEmail = `${talent.toLowerCase().replace(/\s+/g, '.')}@example.com`;
+            }
+
+            // Compute net revenue: Rémunération totale (L) - Commission (R)
+            const remunerationTotale = cleanCurrency(row['Rémunération totale']);
+            const commission = cleanCurrency(row['Commission']);
+            const netRevenue = Math.max(0, remunerationTotale - commission);
+
+            // Determine a display date for history: prefer Date Fin, else Preview, else Post
             const dateFin = convertFrenchDate(row['Date Fin']);
-            if (!dateFin) return null;
-            
-            // Get email and talent from proper columns
-            const email = row['Mail'];
-            const talent = row['Talent'];
-            
-            const userEmail = email && email !== '#N/A' && email.includes('@') 
-                ? email.trim() 
-                : `${talent?.toLowerCase().replace(/\s+/g, '.')}@example.com`;
-            
-            const rawStatus = row['Status'] || '';
-            const isCompleted = rawStatus.toLowerCase().includes('fait') || 
-                              rawStatus.toLowerCase().includes('complete') || 
-                              rawStatus.toLowerCase().includes('terminé') ||
-                              rawStatus.toLowerCase().includes('fini');
-            
-            console.log(`Campaign ${row['Marque']}: Raw status="${rawStatus}", IsCompleted=${isCompleted}`);
-            
+            const preview = convertFrenchDate(row['Preview'] || row['Date Début'] || row['Date Debut'] || row['Date début']);
+            const post = convertFrenchDate(row['Post']);
+            const displayDate = dateFin || preview || post || '';
+
+            // Map status to Completed/Upcoming for stats
+            const rawStatus = (row['Status'] || '').toLowerCase();
+            const isCompleted = rawStatus.includes('fait') || rawStatus.includes('complete') || rawStatus.includes('termin') || rawStatus.includes('fini');
+
             return {
                 Campaign_ID: `sheet_${index}`,
                 Talent: talent || '',
                 Influencer_Email: userEmail,
-                Date: dateFin,
+                Date: displayDate,
                 Brand_Name: row['Marque'] || '',
-                Revenue: cleanCurrency(row['Rémunération totale']),
+                Revenue: netRevenue,
                 Status: isCompleted ? 'Completed' : 'Upcoming',
                 DateCreation: convertFrenchDate(row['Date Création']),
                 Description: row['Description rapide de la demande'] || '',
                 Format: row['Format (influence vs UGC)'] || '',
-                Commission: cleanCurrency(row['Commission']),
+                Commission: commission,
                 OriginalData: row // Keep original for reference
             };
-        })
-        .filter(campaign => campaign !== null); // Remove invalid entries
+        });
 };
 
 // Build calendar events for Preview (Column E) and Post (Column G) with color/status from Column H
