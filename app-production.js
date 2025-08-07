@@ -1492,6 +1492,79 @@ const Toolbox = ({ user, toolboxMatrix, language }) => {
                     </div>
                 )}
             </div>
+
+            {/* Google Drive uploader */}
+            <DriveUploader user={user} />
+        </div>
+    );
+};
+
+const DriveUploader = ({ user }) => {
+    const [folder, setFolder] = React.useState(null);
+    const [file, setFile] = React.useState(null);
+    const [uploading, setUploading] = React.useState(false);
+    const [message, setMessage] = React.useState('');
+
+    React.useEffect(() => {
+        const fetchFolder = async () => {
+            try {
+                const res = await fetch(`/.netlify/functions/drive-upload?email=${encodeURIComponent(user.email)}`);
+                const data = await res.json();
+                if (data.success) setFolder(data.folder);
+            } catch (_) {}
+        };
+        fetchFolder();
+    }, [user.email]);
+
+    const onUpload = async () => {
+        if (!file) return;
+        setUploading(true);
+        setMessage('');
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+            const res = await fetch('/.netlify/functions/drive-upload', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: user.email,
+                    filename: file.name,
+                    mimeType: file.type,
+                    dataBase64: base64,
+                }),
+            });
+            const data = await res.json();
+            if (data.success) {
+                setMessage('Uploaded successfully');
+                setFile(null);
+                setFolder(null);
+                // Refresh folder
+                const res2 = await fetch(`/.netlify/functions/drive-upload?email=${encodeURIComponent(user.email)}`);
+                const data2 = await res2.json();
+                if (data2.success) setFolder(data2.folder);
+            } else {
+                setMessage('Upload failed');
+            }
+        } catch (e) {
+            setMessage('Upload failed');
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    return (
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Drive Uploads</h3>
+            {folder && (
+                <p className="text-sm text-gray-600 mb-4">Your folder: <a className="text-blue-600 underline" href={folder.webViewLink} target="_blank" rel="noreferrer">Open in Drive</a></p>
+            )}
+            <div className="flex items-center gap-3">
+                <input type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} />
+                <button onClick={onUpload} disabled={!file || uploading} className="gradient-bg text-white px-4 py-2 rounded-lg disabled:opacity-50">
+                    {uploading ? 'Uploading…' : 'Upload'}
+                </button>
+            </div>
+            {message && <p className="text-sm text-gray-600 mt-2">{message}</p>}
         </div>
     );
 };
