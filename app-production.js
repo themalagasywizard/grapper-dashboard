@@ -28,9 +28,9 @@ const translations = {
         avgRevenue: "Avg Revenue",
         allMyCampaigns: "All My Campaigns",
         upcoming: "Upcoming",
-        dateFin: "Date Fin",
-        marque: "Marque (Brand)",
-        remunerationTotale: "Rémunération totale",
+        dateFin: "End Date",
+        marque: "Brand",
+        remunerationTotale: "Total remuneration",
         talent: "Talent",
         status: "Status",
         exportMyData: "Export My Data",
@@ -608,10 +608,8 @@ const Navigation = ({ user, onLogout, currentTab, setCurrentTab, userCampaigns, 
                         <div>
                             <h1 className="text-2xl font-bold text-gray-900">Grapper</h1>
                             <p className="text-sm text-gray-500">
-                                {currentTab === 'dashboard' && t('dashboard')}
-                                {currentTab === 'history' && t('history')}
-                                {currentTab === 'profile' && t('profile')}
-                                {currentTab === 'users' && t('availableUsers')}
+                                {currentTab === 'invoices' && (t('invoiceGenerator') || 'Invoices')}
+                                {currentTab === 'toolbox' && t('toolbox')}
                             </p>
                         </div>
                     </div>
