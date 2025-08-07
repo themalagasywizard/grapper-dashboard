@@ -411,20 +411,23 @@ const extractUsersFromSheetData = (sheetData) => {
     console.log('Available columns:', Object.keys(sheetData[0] || {}));
     
     sheetData.forEach((row, index) => {
-        // Get email and talent from proper columns
-        const email = row['Mail']; // Column T - should be available by header name
-        const talent = row['Talent']; // Column A - should be available by header name
+        // Prefer Talent (A) if it contains an email, otherwise fall back to Mail
+        const talentValue = row['Talent'] || '';
+        const mailValue = row['Mail'] || '';
+        const email = (talentValue.includes('@') ? talentValue : mailValue).trim();
+        const talent = talentValue; // may be email in new DB
         
         if (index < 5) {
             console.log(`Row ${index}: Email="${email}", Talent="${talent}", Full row keys:`, Object.keys(row));
         }
         
         // Only process rows with valid email addresses (not empty, not #N/A)
-        if (email && email.trim() !== '' && email !== '#N/A' && email.includes('@')) {
-            if (!usersMap.has(email.trim())) {
-                usersMap.set(email.trim(), {
-                    email: email.trim(),
-                    name: talent ? talent.trim() : 'Unknown User',
+        if (email && email !== '' && email !== '#N/A' && email.includes('@')) {
+            if (!usersMap.has(email)) {
+                const nameFallback = email.split('@')[0].replace(/[._-]+/g, ' ');
+                usersMap.set(email, {
+                    email,
+                    name: talent && !talent.includes('@') ? talent.trim() : nameFallback,
                     joinDate: convertFrenchDate(row['Date Création']) || '2024-01-01'
                 });
             }
@@ -461,7 +464,7 @@ const buildUsersFromLoginEmails = (emails, sheetData) => {
     return users;
 };
 
-// Data transformation function for Google Sheets data
+// Data transformation function for Google Sheets data (campaigns)
 const transformSheetDataToCampaigns = (sheetData) => {
     return sheetData
         .filter(row => {
@@ -509,11 +512,61 @@ const transformSheetDataToCampaigns = (sheetData) => {
         .filter(campaign => campaign !== null); // Remove invalid entries
 };
 
+// Build calendar events for Preview (Column E) and Post (Column G) with color/status from Column H
+const buildActionEventsFromSheet = (sheetData) => {
+    const events = [];
+    sheetData.forEach((row, index) => {
+        // Email is in Talent (A) per new DB; fallback to Mail if needed
+        const emailRaw = (row['Talent'] || row['Mail'] || '').trim();
+        const email = emailRaw;
+        const brand = row['Marque'] || '';
+        const status = (row['Status'] || '').trim();
+        const talent = row['Talent'] || '';
+        const preview = (row['Preview'] || '') || '';
+        const post = (row['Post'] || '') || '';
+
+        const colorForStatus = (s) => {
+            const lower = s.toLowerCase();
+            if (lower.includes('fait') || lower.includes('termin') || lower.includes('done') || lower.includes('complete')) return '#22c55e';
+            if (lower.includes('modif') || lower.includes('draft') || lower.includes('brouillon')) return '#f59e0b';
+            if (lower.includes('annul') || lower.includes('cancel')) return '#ef4444';
+            return '#6366f1';
+        };
+
+        const makeEvent = (isoDate, actionType) => ({
+            id: `evt_${index}_${actionType}`,
+            title: `${brand}`,
+            date: isoDate,
+            backgroundColor: colorForStatus(status),
+            borderColor: 'transparent',
+            textColor: '#ffffff',
+            extendedProps: {
+                brand,
+                status,
+                actionType,
+                email,
+                talent
+            }
+        });
+
+        const dPreview = convertFrenchDate(preview);
+        if (dPreview) {
+            events.push(makeEvent(dPreview, 'Preview'));
+        }
+        const dPost = convertFrenchDate(post);
+        if (dPost) {
+            events.push(makeEvent(dPost, 'Post'));
+        }
+    });
+    return events;
+};
+
 // Main data state
 let allCampaigns = [];
 let availableUsers = [];
 let currentUser = null;
 let lastDataUpdate = null;
+let allActionEvents = [];
 
 // Header Navigation Component
 const Navigation = ({ user, onLogout, currentTab, setCurrentTab, userCampaigns, language, toggleLanguage, lastUpdated, onRefresh }) => {
@@ -693,7 +746,11 @@ const Dashboard = ({ campaigns, language }) => {
                     
                     if (currentView === 'upcomingList') {
                         // For list view: only upcoming events from today onwards, sorted chronologically
-                        const upcomingEvents = allEvents
+                        const upcomingEvents = (Array.isArray(events) ? events : []).length ?
+                            (Array.isArray(events) ? events : [])
+                                .filter(event => new Date(event.date) >= today)
+                                .sort((a, b) => new Date(a.date) - new Date(b.date))
+                            : [];
                             .filter(event => {
                                 const eventDate = new Date(event.date);
                                 return eventDate >= today;
@@ -703,8 +760,9 @@ const Dashboard = ({ campaigns, language }) => {
                         successCallback(upcomingEvents);
                     } else {
                         // For calendar view (dayGridMonth): ALL events (past and future)
-                        console.log(`Calendar view (${currentView}): Showing ${allEvents.length} total events (past and future)`);
-                        successCallback(allEvents);
+                        const allProvided = Array.isArray(events) ? events : [];
+                        console.log(`Calendar view (${currentView}): Showing ${allProvided.length} total events (past and future)`);
+                        successCallback(allProvided);
                     }
                 },
                 eventClick: function(info) {
@@ -1588,6 +1646,7 @@ const App = () => {
     const [currentTab, setCurrentTab] = useState('dashboard');
     const [currentUser, setCurrentUser] = useState(null);
     const [userCampaigns, setUserCampaigns] = useState([]);
+    const [userEvents, setUserEvents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [language, setLanguage] = useState('en');
@@ -1612,8 +1671,9 @@ const App = () => {
                 sheetData = await googleSheetsService.fetchSheetData();
             }
             
-            // Extract all campaigns
+            // Extract all campaigns and action events
             allCampaigns = transformSheetDataToCampaigns(sheetData);
+            allActionEvents = buildActionEventsFromSheet(sheetData);
 
             // Prefer dedicated Mail sheet for login emails if provided
             const loginEmails = googleSheetsService.getLoginEmails();
@@ -1633,6 +1693,9 @@ const App = () => {
                     campaign.Influencer_Email.toLowerCase() === currentUser.email.toLowerCase()
                 );
                 setUserCampaigns(filtered);
+                // Filter events by email
+                const userEvents = allActionEvents.filter(e => (e.extendedProps?.email || '').toLowerCase() === currentUser.email.toLowerCase());
+                setUserEvents(userEvents);
             }
             
         } catch (error) {
@@ -1668,6 +1731,8 @@ const App = () => {
         );
         
         setUserCampaigns(filtered);
+        const evts = allActionEvents.filter(e => (e.extendedProps?.email || '').toLowerCase() === user.email.toLowerCase());
+        setUserEvents(evts);
         setIsLoggedIn(true);
     };
 
@@ -1717,7 +1782,7 @@ const App = () => {
     const renderCurrentTab = () => {
         switch(currentTab) {
             case 'dashboard':
-                return <Dashboard campaigns={userCampaigns} language={language} />;
+                return <Dashboard campaigns={userCampaigns} events={userEvents} language={language} />;
             case 'history':
                 return <History campaigns={userCampaigns} language={language} />;
             case 'profile':
@@ -1725,7 +1790,7 @@ const App = () => {
             case 'invoices':
                 return <InvoiceGenerator user={currentUser} campaigns={userCampaigns} language={language} />;
             default:
-                return <Dashboard campaigns={userCampaigns} language={language} />;
+                return <Dashboard campaigns={userCampaigns} events={userEvents} language={language} />;
         }
     };
 
