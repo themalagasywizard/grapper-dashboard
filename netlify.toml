@@ -7,8 +7,8 @@
   functions = "netlify/functions"
 
 [functions]
-  # Directory for external dependencies (if needed)
-  external_node_modules = []
+  # Ensure bundler includes googleapis for functions
+  external_node_modules = ["googleapis"]
 
 # Headers for security
 [[headers]]
