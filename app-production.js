@@ -244,6 +244,7 @@ class GoogleSheetsService {
         this.isInitialized = false;
         this.lastFetch = null;
         this.cacheTimeout = 30000; // 30 seconds cache
+        this.loginEmails = [];
     }
 
     async initialize() {
@@ -338,6 +339,9 @@ class GoogleSheetsService {
                 headers: headers
             });
 
+            // Capture login emails from serverless function (Mail sheet)
+            this.loginEmails = Array.isArray(result.loginEmails) ? result.loginEmails : [];
+
             // Cache the result
             this.lastFetch = {
                 data: data,
@@ -360,6 +364,10 @@ class GoogleSheetsService {
     async refreshData() {
         this.lastFetch = null;
         return await this.fetchSheetData();
+    }
+
+    getLoginEmails() {
+        return this.loginEmails || [];
     }
 }
 
@@ -425,6 +433,31 @@ const extractUsersFromSheetData = (sheetData) => {
     
     const users = Array.from(usersMap.values());
     console.log('Extracted users:', users);
+    return users;
+};
+
+// Build available users from the dedicated Mail sheet (if provided by serverless)
+const buildUsersFromLoginEmails = (emails, sheetData) => {
+    const users = [];
+    const seen = new Set();
+    const nameByEmail = new Map();
+    // Try to map email -> Talent name from main sheet rows
+    sheetData.forEach(row => {
+        const email = (row['Mail'] || '').trim().toLowerCase();
+        const name = (row['Talent'] || '').trim();
+        if (email && name && email.includes('@') && !nameByEmail.has(email)) {
+            nameByEmail.set(email, name);
+        }
+    });
+    emails.forEach(raw => {
+        const email = (raw || '').trim();
+        if (!email || !email.includes('@')) return;
+        const key = email.toLowerCase();
+        if (seen.has(key)) return;
+        seen.add(key);
+        const nameGuess = nameByEmail.get(key) || email.split('@')[0].replace(/[._-]+/g, ' ');
+        users.push({ email, name: nameGuess || 'User', joinDate: '2024-01-01' });
+    });
     return users;
 };
 
@@ -1579,9 +1612,17 @@ const App = () => {
                 sheetData = await googleSheetsService.fetchSheetData();
             }
             
-            // Extract all campaigns and users
+            // Extract all campaigns
             allCampaigns = transformSheetDataToCampaigns(sheetData);
-            availableUsers = extractUsersFromSheetData(sheetData);
+
+            // Prefer dedicated Mail sheet for login emails if provided
+            const loginEmails = googleSheetsService.getLoginEmails();
+            if (Array.isArray(loginEmails) && loginEmails.length > 0) {
+                availableUsers = buildUsersFromLoginEmails(loginEmails, sheetData);
+            } else {
+                // Fallback to deriving users from main sheet
+                availableUsers = extractUsersFromSheetData(sheetData);
+            }
             
             setLastUpdated(Date.now());
             setLoading(false);

@@ -19,7 +19,9 @@ exports.handler = async (event, context) => {
         // Get environment variables
         const API_KEY = process.env.GOOGLE_SHEETS_API_KEY;
         const SPREADSHEET_ID = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
-        const RANGE = process.env.GOOGLE_SHEETS_RANGE || 'Global1!A1:AC2000';
+        // Default ranges can be overridden via env
+        const CAMPAIGNS_RANGE = process.env.GOOGLE_SHEETS_CAMPAIGNS_RANGE || process.env.GOOGLE_SHEETS_RANGE || 'Global1!A1:AC2000';
+        const LOGIN_RANGE = process.env.GOOGLE_SHEETS_LOGIN_RANGE || 'Mail!A1:A2000';
 
         // Validate environment variables
         if (!API_KEY || !SPREADSHEET_ID) {
@@ -36,14 +38,12 @@ exports.handler = async (event, context) => {
             };
         }
 
-        // Construct Google Sheets API URL
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${encodeURIComponent(RANGE)}?key=${API_KEY}`;
-        
-        console.log('Fetching from Google Sheets...', { SPREADSHEET_ID, RANGE });
+        // Use batchGet to fetch campaigns and login emails in one request
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values:batchGet?ranges=${encodeURIComponent(CAMPAIGNS_RANGE)}&ranges=${encodeURIComponent(LOGIN_RANGE)}&key=${API_KEY}`;
 
-        // Fetch data from Google Sheets API
+        console.log('Fetching from Google Sheets (batchGet)...', { SPREADSHEET_ID, CAMPAIGNS_RANGE, LOGIN_RANGE });
+
         const response = await fetch(url);
-        
         if (!response.ok) {
             const errorText = await response.text();
             console.error('Google Sheets API error:', {
@@ -51,7 +51,6 @@ exports.handler = async (event, context) => {
                 statusText: response.statusText,
                 error: errorText
             });
-            
             return {
                 statusCode: response.status,
                 headers,
@@ -63,40 +62,47 @@ exports.handler = async (event, context) => {
         }
 
         const data = await response.json();
-        
-        // Validate response structure
-        if (!data.values || !Array.isArray(data.values)) {
-            console.error('Invalid response structure:', data);
+
+        if (!data.valueRanges || !Array.isArray(data.valueRanges)) {
+            console.error('Invalid batchGet response structure:', data);
             return {
                 statusCode: 500,
                 headers,
                 body: JSON.stringify({ 
-                    error: 'Invalid response from Google Sheets API',
-                    data: data
+                    error: 'Invalid response from Google Sheets API (batchGet)',
+                    data
                 })
             };
         }
 
+        const campaignsValues = data.valueRanges[0]?.values || [];
+        const mailValues = data.valueRanges[1]?.values || [];
+
+        // Flatten login emails from first column, skip header if any
+        const loginEmails = mailValues
+            .map(row => (Array.isArray(row) ? row[0] : null))
+            .filter(v => typeof v === 'string' && v.trim() !== '')
+            .map(v => v.trim());
+
         console.log('Successfully fetched data:', {
-            rows: data.values.length,
-            headers: data.values[0]?.length || 0
+            campaignsRows: campaignsValues.length,
+            loginEmailsCount: loginEmails.length
         });
 
-        // Return the data
         return {
             statusCode: 200,
             headers,
             body: JSON.stringify({
                 success: true,
-                data: data.values,
-                rowCount: data.values.length,
+                data: campaignsValues,
+                loginEmails,
+                rowCount: campaignsValues.length,
                 timestamp: new Date().toISOString()
             })
         };
 
     } catch (error) {
         console.error('Serverless function error:', error);
-        
         return {
             statusCode: 500,
             headers,
@@ -107,4 +113,4 @@ exports.handler = async (event, context) => {
             })
         };
     }
-}; 
+};
