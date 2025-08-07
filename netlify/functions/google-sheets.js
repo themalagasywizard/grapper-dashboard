@@ -22,7 +22,7 @@ exports.handler = async (event, context) => {
         // Default ranges can be overridden via env
         const CAMPAIGNS_RANGE = process.env.GOOGLE_SHEETS_CAMPAIGNS_RANGE || process.env.GOOGLE_SHEETS_RANGE || 'Global1!A1:AC2000';
         const LOGIN_RANGE = process.env.GOOGLE_SHEETS_LOGIN_RANGE || 'Mail!A1:A2000';
-        const TOOLBOX_RANGE = process.env.GOOGLE_SHEETS_TOOLBOX_RANGE || 'Boite a Outil!A1:ZZ2000';
+        const TOOLBOX_RANGE = process.env.GOOGLE_SHEETS_TOOLBOX_RANGE || "'Boite à Outil'!A1:ZZ2000";
 
         // Validate environment variables
         if (!API_KEY || !SPREADSHEET_ID) {
