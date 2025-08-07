@@ -680,7 +680,7 @@ const Navigation = ({ user, onLogout, currentTab, setCurrentTab, userCampaigns, 
 };
 
 // Dashboard Component with Calendar (filtered for user)
-const Dashboard = ({ campaigns, language }) => {
+const Dashboard = ({ campaigns, events = [], language }) => {
     const { t } = useTranslation(language);
     const calendarRef = useRef(null);
     const calendarInstance = useRef(null);
@@ -746,15 +746,8 @@ const Dashboard = ({ campaigns, language }) => {
                     
                     if (currentView === 'upcomingList') {
                         // For list view: only upcoming events from today onwards, sorted chronologically
-                        const upcomingEvents = (Array.isArray(events) ? events : []).length ?
-                            (Array.isArray(events) ? events : [])
-                                .filter(event => new Date(event.date) >= today)
-                                .sort((a, b) => new Date(a.date) - new Date(b.date))
-                            : [];
-                            .filter(event => {
-                                const eventDate = new Date(event.date);
-                                return eventDate >= today;
-                            })
+                        const upcomingEvents = (Array.isArray(events) ? events : [])
+                            .filter(event => new Date(event.date) >= today)
                             .sort((a, b) => new Date(a.date) - new Date(b.date));
                         console.log(`List view: Showing ${upcomingEvents.length} upcoming events`);
                         successCallback(upcomingEvents);
