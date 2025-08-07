@@ -607,10 +607,6 @@ const Navigation = ({ user, onLogout, currentTab, setCurrentTab, userCampaigns, 
                         />
                         <div>
                             <h1 className="text-2xl font-bold text-gray-900">Grapper</h1>
-                            <p className="text-sm text-gray-500">
-                                {currentTab === 'invoices' && (t('invoiceGenerator') || 'Invoices')}
-                                {currentTab === 'toolbox' && t('toolbox')}
-                            </p>
                         </div>
                     </div>
                     
