@@ -109,6 +109,9 @@ const translations = {
         agentAddress: "Agent Address",
         generateInvoice: "Generate & Preview Invoice",
         invoiceDescription: "Campaign Collaboration Services",
+        toolbox: "Toolbox",
+        toolboxIntro: "Daily resources available to you:",
+        noTools: "No tools available for your account yet.",
     },
     fr: {
         // Header & Navigation
@@ -217,6 +220,9 @@ const translations = {
         agentAddress: "Adresse de l'agent",
         generateInvoice: "Générer et prévisualiser la facture",
         invoiceDescription: "Services de collaboration de campagne",
+        toolbox: "Boîte à outils",
+        toolboxIntro: "Ressources quotidiennes disponibles :",
+        noTools: "Aucun outil disponible pour votre compte pour le moment.",
     }
 };
 
@@ -323,7 +329,7 @@ class GoogleSheetsService {
                 timestamp: result.timestamp
             });
 
-            // Convert to object format
+            // Convert campaigns to object format
             const headers = rows[0];
             const data = rows.slice(1).map(row => {
                 const obj = {};
@@ -341,6 +347,9 @@ class GoogleSheetsService {
 
             // Capture login emails from serverless function (Mail sheet)
             this.loginEmails = Array.isArray(result.loginEmails) ? result.loginEmails : [];
+
+            // Capture toolbox raw matrix
+            this.toolboxMatrix = Array.isArray(result.toolbox) ? result.toolbox : [];
 
             // Cache the result
             this.lastFetch = {
@@ -368,6 +377,10 @@ class GoogleSheetsService {
 
     getLoginEmails() {
         return this.loginEmails || [];
+    }
+
+    getToolboxMatrix() {
+        return this.toolboxMatrix || [];
     }
 }
 
@@ -575,6 +588,7 @@ let availableUsers = [];
 let currentUser = null;
 let lastDataUpdate = null;
 let allActionEvents = [];
+let toolboxMatrix = [];
 
 // Header Navigation Component
 const Navigation = ({ user, onLogout, currentTab, setCurrentTab, userCampaigns, language, toggleLanguage, lastUpdated, onRefresh }) => {
@@ -680,6 +694,16 @@ const Navigation = ({ user, onLogout, currentTab, setCurrentTab, userCampaigns, 
                         }`}
                     >
                         💳 {t('invoiceGenerator') || 'Invoices'}
+                    </button>
+                    <button
+                        onClick={() => setCurrentTab('toolbox')}
+                        className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                            currentTab === 'toolbox'
+                                ? 'border-blue-500 text-blue-600'
+                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                        }`}
+                    >
+                        🧰 {t('toolbox')}
                     </button>
                 </div>
             </div>
@@ -1422,6 +1446,62 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
     );
 };
 
+// Toolbox Component
+const Toolbox = ({ user, toolboxMatrix, language }) => {
+    const { t } = useTranslation(language);
+    // Expect matrix where row 1: links, row 2: names, rows 3+: emails per column
+    if (!toolboxMatrix || toolboxMatrix.length < 2) {
+        return (
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                <h2 className="text-xl font-bold text-gray-900 mb-4">{t('toolbox')}</h2>
+                <p className="text-gray-600">{t('noTools')}</p>
+            </div>
+        );
+    }
+
+    const linksRow = toolboxMatrix[0] || [];
+    const namesRow = toolboxMatrix[1] || [];
+    const emailRows = toolboxMatrix.slice(2);
+    const userEmail = (user?.email || '').toLowerCase();
+
+    // Determine which columns apply to the current user
+    const applicableColumns = linksRow.map((url, colIdx) => {
+        if (!url || typeof url !== 'string' || !/^https?:\/\//i.test(url)) return null;
+        const name = namesRow[colIdx] || `Link ${colIdx + 1}`;
+        // Check if user's email appears in this column (rows 3+)
+        const columnEmails = emailRows.map(r => (r[colIdx] || '').toLowerCase()).filter(Boolean);
+        const isForUser = columnEmails.includes(userEmail);
+        return isForUser ? { url, name } : null;
+    }).filter(Boolean);
+
+    return (
+        <div className="space-y-6">
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                <h2 className="text-xl font-bold text-gray-900 mb-2">{t('toolbox')}</h2>
+                <p className="text-gray-600 mb-4">{t('toolboxIntro')}</p>
+                {applicableColumns.length === 0 ? (
+                    <p className="text-gray-500">{t('noTools')}</p>
+                ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {applicableColumns.map((tool, idx) => (
+                            <a
+                                key={idx}
+                                href={tool.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 flex items-center justify-between"
+                            >
+                                <span className="font-medium text-blue-700 underline truncate">{tool.name}</span>
+                                <span>↗</span>
+                            </a>
+                        ))}
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
 // Available Users Component (for debugging/demo)
 const AvailableUsers = ({ users, language }) => {
     const { t } = useTranslation(language);
@@ -1684,6 +1764,8 @@ const App = () => {
                 // Fallback to deriving users from main sheet
                 availableUsers = extractUsersFromSheetData(sheetData);
             }
+            // Capture toolbox matrix
+            toolboxMatrix = googleSheetsService.getToolboxMatrix();
             
             setLastUpdated(Date.now());
             setLoading(false);
@@ -1790,6 +1872,8 @@ const App = () => {
                 return <Profile user={currentUser} campaigns={userCampaigns} language={language} />;
             case 'invoices':
                 return <InvoiceGenerator user={currentUser} campaigns={userCampaigns} language={language} />;
+            case 'toolbox':
+                return <Toolbox user={currentUser} toolboxMatrix={toolboxMatrix} language={language} />;
             default:
                 return <Dashboard campaigns={userCampaigns} events={userEvents} language={language} />;
         }
