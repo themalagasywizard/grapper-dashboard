@@ -596,7 +596,7 @@ const Navigation = ({ user, onLogout, currentTab, setCurrentTab, userCampaigns, 
     const totalRevenue = userCampaigns.reduce((sum, c) => sum + c.Revenue, 0);
     
     return (
-        <header className="bg-white shadow-sm border-b border-gray-200">
+        <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex justify-between items-center py-4">
                     <div className="flex items-center space-x-4">
@@ -648,10 +648,10 @@ const Navigation = ({ user, onLogout, currentTab, setCurrentTab, userCampaigns, 
                 </div>
                 
                 {/* Tab Navigation */}
-                <div className="flex space-x-8 -mb-px">
+                <div className="flex space-x-6 -mb-px overflow-x-auto whitespace-nowrap pb-1">
                     <button
                         onClick={() => setCurrentTab('dashboard')}
-                        className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                        className={`py-3 px-3 border-b-2 font-medium text-sm sm:text-base ${
                             currentTab === 'dashboard'
                                 ? 'border-blue-500 text-blue-600'
                                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -661,7 +661,7 @@ const Navigation = ({ user, onLogout, currentTab, setCurrentTab, userCampaigns, 
                     </button>
                     <button
                         onClick={() => setCurrentTab('history')}
-                        className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                        className={`py-3 px-3 border-b-2 font-medium text-sm sm:text-base ${
                             currentTab === 'history'
                                 ? 'border-blue-500 text-blue-600'
                                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -671,7 +671,7 @@ const Navigation = ({ user, onLogout, currentTab, setCurrentTab, userCampaigns, 
                     </button>
                     <button
                         onClick={() => setCurrentTab('profile')}
-                        className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                        className={`py-3 px-3 border-b-2 font-medium text-sm sm:text-base ${
                             currentTab === 'profile'
                                 ? 'border-blue-500 text-blue-600'
                                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -681,7 +681,7 @@ const Navigation = ({ user, onLogout, currentTab, setCurrentTab, userCampaigns, 
                     </button>
                     <button
                         onClick={() => setCurrentTab('invoices')}
-                        className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                        className={`py-3 px-3 border-b-2 font-medium text-sm sm:text-base ${
                             currentTab === 'invoices'
                                 ? 'border-blue-500 text-blue-600'
                                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -691,7 +691,7 @@ const Navigation = ({ user, onLogout, currentTab, setCurrentTab, userCampaigns, 
                     </button>
                     <button
                         onClick={() => setCurrentTab('toolbox')}
-                        className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                        className={`py-3 px-3 border-b-2 font-medium text-sm sm:text-base ${
                             currentTab === 'toolbox'
                                 ? 'border-blue-500 text-blue-600'
                                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -742,12 +742,13 @@ const Dashboard = ({ campaigns, events = [], language }) => {
                 };
             });
 
+            const isSmallScreen = window.matchMedia('(max-width: 640px)').matches;
             calendarInstance.current = new FullCalendar.Calendar(calendarRef.current, {
-                initialView: 'dayGridMonth',
+                initialView: isSmallScreen ? 'upcomingList' : 'dayGridMonth',
                 headerToolbar: {
-                    left: 'prev,next today',
+                    left: isSmallScreen ? 'prev,next' : 'prev,next today',
                     center: 'title',
-                    right: 'dayGridMonth,upcomingList'
+                    right: isSmallScreen ? 'upcomingList' : 'dayGridMonth,upcomingList'
                 },
                 views: {
                     upcomingList: {
@@ -870,13 +871,13 @@ const Dashboard = ({ campaigns, events = [], language }) => {
             </div>
 
             {/* Calendar */}
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-200">
                 <h2 className="text-xl font-bold text-gray-900 mb-4">{t('myCampaignCalendar')}</h2>
                 <div ref={calendarRef} className="calendar-container"></div>
             </div>
 
             {/* Quick View - Recent Campaigns */}
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-200">
                 <h2 className="text-xl font-bold text-gray-900 mb-4">{t('myRecentCampaigns')}</h2>
                 {campaigns.length === 0 ? (
                     <div className="text-center py-8 text-gray-500">
@@ -1012,7 +1013,7 @@ const History = ({ campaigns, language }) => {
             </div>
 
             {/* Filters and Controls */}
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-200">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
                     <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
                         <select 
@@ -1064,7 +1065,7 @@ const History = ({ campaigns, language }) => {
                         <p className="text-sm mt-2">{t('contactAdmin')}</p>
                     </div>
                 ) : (
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto hidden sm:block">
                         <table className="w-full">
                             <thead className="bg-gray-50">
                                 <tr>
@@ -1102,6 +1103,30 @@ const History = ({ campaigns, language }) => {
                                 ))}
                             </tbody>
                         </table>
+                    </div>
+                )}
+                {/* Mobile card list */}
+                {campaigns.length > 0 && (
+                    <div className="sm:hidden divide-y divide-gray-200">
+                        {paginatedCampaigns.map((campaign) => (
+                            <div key={campaign.Campaign_ID} className="p-4">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center space-x-3">
+                                        <div className="gradient-bg p-2 rounded-lg">
+                                            <span className="text-white text-xs font-bold">{campaign.Brand_Name[0]}</span>
+                                        </div>
+                                        <div>
+                                            <p className="font-medium text-gray-900">{campaign.Brand_Name}</p>
+                                            <p className="text-xs text-gray-500">{t('dateFin')}: {campaign.Date}</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-sm font-semibold">€{campaign.Revenue.toLocaleString()}</p>
+                                        <span className={`inline-block mt-1 px-2 py-1 text-xs rounded-full ${campaign.Status === 'Completed' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>{campaign.Status === 'Completed' ? t('completed') : t('upcoming')}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 )}
                 
@@ -1153,7 +1178,7 @@ const Profile = ({ user, campaigns, language }) => {
     return (
         <div className="space-y-6">
             {/* Profile Header */}
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-200">
                 <div className="flex items-start space-x-6">
                     <div className="gradient-bg p-6 rounded-full">
                         <span className="text-white text-3xl font-bold">{user.name.split(' ').map(n => n[0]).join('')}</span>
@@ -1356,7 +1381,7 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
 
     return (
         <div className="space-y-6">
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-200">
                 <h2 className="text-xl font-bold text-gray-900 mb-4">{t('invoiceGenerator') || 'Generate Invoice'}</h2>
     
                 
