@@ -744,11 +744,12 @@ const Dashboard = ({ campaigns, events = [], language }) => {
 
             const isSmallScreen = window.matchMedia('(max-width: 640px)').matches;
             calendarInstance.current = new FullCalendar.Calendar(calendarRef.current, {
-                initialView: isSmallScreen ? 'upcomingList' : 'dayGridMonth',
+                // Show Calendar by default even on mobile, but allow switching to list
+                initialView: 'dayGridMonth',
                 headerToolbar: {
-                    left: isSmallScreen ? 'prev,next' : 'prev,next today',
+                    left: 'prev,next today',
                     center: 'title',
-                    right: isSmallScreen ? 'upcomingList' : 'dayGridMonth,upcomingList'
+                    right: 'dayGridMonth,upcomingList'
                 },
                 views: {
                     upcomingList: {
@@ -757,6 +758,13 @@ const Dashboard = ({ campaigns, events = [], language }) => {
                         buttonText: 'Upcoming'
                     }
                 },
+                buttonText: {
+                    dayGridMonth: 'Calendar',
+                    upcomingList: 'List'
+                },
+                dayMaxEventRows: isSmallScreen ? 2 : 3,
+                expandRows: true,
+                height: 'auto',
                 events: function(fetchInfo, successCallback, failureCallback) {
                     // Safely get current view type with fallback
                     let currentView = 'upcomingList'; // Default to upcomingList
