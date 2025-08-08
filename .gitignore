@@ -2,6 +2,10 @@
 *.csv
 *.xlsx
 *.xls
+*credentials*.json
+*service-account*.json
+*gcp*.json
+*google*-credentials*.json
 
 # Environment Variables
 .env
