@@ -21,7 +21,7 @@ exports.handler = async (event, context) => {
         const SPREADSHEET_ID = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
         // Default ranges can be overridden via env
         const CAMPAIGNS_RANGE = process.env.GOOGLE_SHEETS_CAMPAIGNS_RANGE || process.env.GOOGLE_SHEETS_RANGE || 'Global1!A1:AC2000';
-        const LOGIN_RANGE = process.env.GOOGLE_SHEETS_LOGIN_RANGE || 'Mail!A1:A2000';
+        const LOGIN_RANGE = process.env.GOOGLE_SHEETS_LOGIN_RANGE || 'Mail!A1:B2000';
         const TOOLBOX_RANGE = process.env.GOOGLE_SHEETS_TOOLBOX_RANGE || "'Boite à Outil'!A1:ZZ2000";
         const EVENTS_RANGE = process.env.GOOGLE_SHEETS_EVENTS_RANGE || 'Events!A1:Z2000';
 
@@ -82,15 +82,24 @@ exports.handler = async (event, context) => {
         const toolboxValues = data.valueRanges[2]?.values || [];
         const eventsValues = data.valueRanges[3]?.values || [];
 
-        // Flatten login emails from first column, skip header if any
-        const loginEmails = mailValues
-            .map(row => (Array.isArray(row) ? row[0] : null))
-            .filter(v => typeof v === 'string' && v.trim() !== '')
-            .map(v => v.trim());
+        // Process login data with emails and passwords from columns A and B
+        const loginData = mailValues
+            .map(row => {
+                if (!Array.isArray(row) || !row[0]) return null;
+                const email = (row[0] || '').trim();
+                const password = (row[1] || '').trim(); // Column B for password
+                if (!email || !email.includes('@')) return null;
+                return { email, password };
+            })
+            .filter(item => item !== null);
+        
+        // Keep backward compatibility for loginEmails
+        const loginEmails = loginData.map(item => item.email);
 
         console.log('Successfully fetched data:', {
             campaignsRows: campaignsValues.length,
             loginEmailsCount: loginEmails.length,
+            loginDataCount: loginData.length,
             toolboxRows: toolboxValues.length,
             eventsRows: eventsValues.length
         });
@@ -102,6 +111,7 @@ exports.handler = async (event, context) => {
                 success: true,
                 data: campaignsValues,
                 loginEmails,
+                loginData, // Include full login data with passwords
                 toolbox: toolboxValues,
                 events: eventsValues,
                 rowCount: campaignsValues.length,

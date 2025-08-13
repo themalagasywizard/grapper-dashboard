@@ -72,6 +72,7 @@ const translations = {
         signIn: "Sign In",
         emailNotFound: "Email not found. Please check the \"Available Users\" list for valid emails.",
         enterBothFields: "Please enter both email and password",
+        invalidPassword: "Invalid password. Please enter the correct password.",
         
         // Sorting & Filtering
         dateNewestFirst: "Date Fin (Newest First)",
@@ -180,6 +181,7 @@ const translations = {
         signIn: "Se connecter",
         emailNotFound: "E-mail non trouvé. Veuillez vérifier la liste \"Utilisateurs disponibles\" pour les e-mails valides.",
         enterBothFields: "Veuillez saisir l'e-mail et le mot de passe",
+        invalidPassword: "Mot de passe incorrect. Veuillez saisir le bon mot de passe.",
         
         // Sorting & Filtering
         dateNewestFirst: "Date Fin (Plus récent d'abord)",
@@ -341,6 +343,9 @@ class GoogleSheetsService {
 
             // Capture login emails from serverless function (Mail sheet)
             this.loginEmails = Array.isArray(result.loginEmails) ? result.loginEmails : [];
+            
+            // Capture full login data with passwords
+            this.loginData = Array.isArray(result.loginData) ? result.loginData : [];
 
             // Capture toolbox raw matrix
             this.toolboxMatrix = Array.isArray(result.toolbox) ? result.toolbox : [];
@@ -373,6 +378,10 @@ class GoogleSheetsService {
 
     getLoginEmails() {
         return this.loginEmails || [];
+    }
+    
+    getLoginData() {
+        return this.loginData || [];
     }
 
     getToolboxMatrix() {
@@ -473,6 +482,37 @@ const buildUsersFromLoginEmails = (emails, sheetData) => {
         seen.add(key);
         const nameGuess = nameByEmail.get(key) || email.split('@')[0].replace(/[._-]+/g, ' ');
         users.push({ email, name: nameGuess || 'User', joinDate: '2024-01-01' });
+    });
+    return users;
+};
+
+// Build available users from login data with passwords
+const buildUsersFromLoginData = (loginData, sheetData) => {
+    const users = [];
+    const seen = new Set();
+    const nameByEmail = new Map();
+    // Try to map email -> Talent name from main sheet rows
+    sheetData.forEach(row => {
+        const email = (row['Mail'] || '').trim().toLowerCase();
+        const name = (row['Talent'] || '').trim();
+        if (email && name && email.includes('@') && !nameByEmail.has(email)) {
+            nameByEmail.set(email, name);
+        }
+    });
+    loginData.forEach(item => {
+        const email = (item.email || '').trim();
+        const password = (item.password || '').trim();
+        if (!email || !email.includes('@')) return;
+        const key = email.toLowerCase();
+        if (seen.has(key)) return;
+        seen.add(key);
+        const nameGuess = nameByEmail.get(key) || email.split('@')[0].replace(/[._-]+/g, ' ');
+        users.push({ 
+            email, 
+            name: nameGuess || 'User', 
+            joinDate: '2024-01-01',
+            password: password // Include password for validation
+        });
     });
     return users;
 };
@@ -1951,7 +1991,16 @@ const Login = ({ onLogin, availableUsers, language, toggleLanguage, loading }) =
             return;
         }
         
-        // For demo purposes, any password works
+        // Check password validation
+        if (user.password && user.password.trim() !== '') {
+            // User has a specific password set - must match
+            if (password !== user.password) {
+                setError(t('invalidPassword'));
+                return;
+            }
+        }
+        // If user.password is empty or undefined, any password works (legacy behavior)
+        
         onLogin(user);
     };
 
@@ -2111,13 +2160,19 @@ const App = () => {
             allCampaigns = transformSheetDataToCampaigns(sheetData);
             allActionEvents = buildActionEventsFromSheet(sheetData, googleSheetsService.getEventsMatrix());
 
-            // Prefer dedicated Mail sheet for login emails if provided
-            const loginEmails = googleSheetsService.getLoginEmails();
-            if (Array.isArray(loginEmails) && loginEmails.length > 0) {
-                availableUsers = buildUsersFromLoginEmails(loginEmails, sheetData);
+            // Prefer dedicated Mail sheet login data with passwords if provided
+            const loginData = googleSheetsService.getLoginData();
+            if (Array.isArray(loginData) && loginData.length > 0) {
+                availableUsers = buildUsersFromLoginData(loginData, sheetData);
             } else {
-                // Fallback to deriving users from main sheet
-                availableUsers = extractUsersFromSheetData(sheetData);
+                // Fallback to old email-only method
+                const loginEmails = googleSheetsService.getLoginEmails();
+                if (Array.isArray(loginEmails) && loginEmails.length > 0) {
+                    availableUsers = buildUsersFromLoginEmails(loginEmails, sheetData);
+                } else {
+                    // Final fallback to deriving users from main sheet
+                    availableUsers = extractUsersFromSheetData(sheetData);
+                }
             }
             // Capture toolbox matrix
             toolboxMatrix = googleSheetsService.getToolboxMatrix();
