@@ -1865,23 +1865,23 @@ const Toolbox = ({ user, toolboxMatrix, language }) => {
     }).filter(Boolean);
 
     return (
-        <div className="space-y-6">
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+        <div className="space-y-6 max-w-4xl mx-auto px-4 sm:px-6">
+            <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-200">
                 <h2 className="text-xl font-bold text-gray-900 mb-2">{t('toolbox')}</h2>
                 <p className="text-gray-600 mb-4">{t('toolboxIntro')}</p>
                 {applicableColumns.length === 0 ? (
                     <p className="text-gray-500">{t('noTools')}</p>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                         {applicableColumns.map((tool, idx) => (
                             <a
                                 key={idx}
                                 href={tool.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 flex items-center justify-between"
+                                className="p-3 sm:p-4 border border-gray-200 rounded-lg hover:bg-gray-50 flex items-center justify-between"
                             >
-                                <span className="font-medium text-blue-700 underline truncate">{tool.name}</span>
+                                <span className="font-medium text-blue-700 underline truncate mr-2">{tool.name}</span>
                                 <span>↗</span>
                             </a>
                         ))}
@@ -1890,7 +1890,9 @@ const Toolbox = ({ user, toolboxMatrix, language }) => {
             </div>
 
             {/* Google Drive uploader */}
-            <DriveUploader user={user} />
+            <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-200">
+                <DriveUploader user={user} />
+            </div>
         </div>
     );
 };
@@ -1954,9 +1956,19 @@ const DriveUploader = ({ user }) => {
             {folder && (
                 <p className="text-sm text-gray-600 mb-4">Your folder: <a className="text-blue-600 underline" href={folder.webViewLink} target="_blank" rel="noreferrer">Open in Drive</a></p>
             )}
-            <div className="flex items-center gap-3">
-                <input type="file" onChange={(e) => setFile(e.target.files?.[0] || null)} />
-                <button onClick={onUpload} disabled={!file || uploading} className="gradient-bg text-white px-4 py-2 rounded-lg disabled:opacity-50">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                <div className="w-full sm:w-auto">
+                    <input 
+                        type="file" 
+                        onChange={(e) => setFile(e.target.files?.[0] || null)}
+                        className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100" 
+                    />
+                </div>
+                <button 
+                    onClick={onUpload} 
+                    disabled={!file || uploading} 
+                    className="w-full sm:w-auto gradient-bg text-white px-6 py-2 rounded-lg disabled:opacity-50 text-center"
+                >
                     {uploading ? 'Uploading…' : 'Upload'}
                 </button>
             </div>
