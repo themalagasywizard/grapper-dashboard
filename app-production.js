@@ -883,8 +883,24 @@ const Navigation = ({ user, onLogout, currentTab, setCurrentTab, userCampaigns, 
                     </div>
                 </div>
                 
-                {/* Tab Navigation */}
-                <div className="flex space-x-6 -mb-px overflow-x-auto whitespace-nowrap pb-1">
+                {/* Mobile: centered dropdown menu */}
+                <div className="sm:hidden mt-2 mb-1 flex justify-center">
+                    <select
+                        aria-label="Navigate"
+                        value={currentTab}
+                        onChange={(e) => setCurrentTab(e.target.value)}
+                        className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                        <option value="dashboard">📅 {t('dashboard')}</option>
+                        <option value="history">📋 {t('history')}</option>
+                        <option value="profile">👤 {t('profile')}</option>
+                        <option value="invoices">💳 {t('invoiceGenerator') || 'Invoices'}</option>
+                        <option value="toolbox">🧰 {t('toolbox')}</option>
+                    </select>
+                </div>
+
+                {/* Desktop/tablet: original sliding tabs */}
+                <div className="hidden sm:flex space-x-6 -mb-px overflow-x-auto whitespace-nowrap pb-1">
                     <button
                         onClick={() => setCurrentTab('dashboard')}
                         className={`py-3 px-3 border-b-2 font-medium text-sm sm:text-base ${
@@ -1001,6 +1017,28 @@ const Dashboard = ({ campaigns, events = [], language }) => {
                 dayMaxEventRows: isSmallScreen ? 2 : 3,
                 expandRows: true,
                 height: 'auto',
+                windowResize: function() {
+                    // Adjust button sizes for mobile each resize
+                    try {
+                        const isMobile = window.matchMedia('(max-width: 640px)').matches;
+                        const toolbar = calendarRef.current?.querySelector?.('.fc-toolbar');
+                        if (toolbar) {
+                            toolbar.style.fontSize = isMobile ? '12px' : '';
+                        }
+                        const buttons = calendarRef.current?.querySelectorAll?.('.fc-button');
+                        if (buttons && buttons.forEach) {
+                            buttons.forEach(btn => {
+                                btn.style.padding = isMobile ? '4px 6px' : '';
+                                btn.style.fontSize = isMobile ? '12px' : '';
+                                btn.style.lineHeight = isMobile ? '1.1' : '';
+                            });
+                        }
+                        const titleEl = calendarRef.current?.querySelector?.('.fc-toolbar-title');
+                        if (titleEl) {
+                            titleEl.style.fontSize = isMobile ? '16px' : '';
+                        }
+                    } catch (_) {}
+                },
                 events: function(fetchInfo, successCallback, failureCallback) {
                     // Safely get current view type with fallback
                     let currentView = 'upcomingList'; // Default to upcomingList
@@ -1064,6 +1102,26 @@ const Dashboard = ({ campaigns, events = [], language }) => {
                     }
                 },
                 eventDidMount: function(info) {
+                    // Apply smaller mobile sizing on first mount
+                    try {
+                        const isMobile = window.matchMedia('(max-width: 640px)').matches;
+                        const toolbar = calendarRef.current?.querySelector?.('.fc-toolbar');
+                        if (toolbar) {
+                            toolbar.style.fontSize = isMobile ? '12px' : '';
+                        }
+                        const buttons = calendarRef.current?.querySelectorAll?.('.fc-button');
+                        if (buttons && buttons.forEach) {
+                            buttons.forEach(btn => {
+                                btn.style.padding = isMobile ? '4px 6px' : '';
+                                btn.style.fontSize = isMobile ? '12px' : '';
+                                btn.style.lineHeight = isMobile ? '1.1' : '';
+                            });
+                        }
+                        const titleEl = calendarRef.current?.querySelector?.('.fc-toolbar-title');
+                        if (titleEl) {
+                            titleEl.style.fontSize = isMobile ? '16px' : '';
+                        }
+                    } catch (_) {}
                     // Enforce colors so nothing overrides them, based on action type
                     try {
                         const type = (info.event.extendedProps && info.event.extendedProps.actionType) || '';
