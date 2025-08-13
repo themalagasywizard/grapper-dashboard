@@ -590,7 +590,7 @@ const buildActionEventsFromSheet = (sheetData, rawEventsMatrix) => {
         }
     });
 
-    // Parse Events worksheet: A=email, B=date, D=start time, E=end time, F=brand
+    // Parse Events worksheet: A=email, B=date, D=start time, E=end time, F=brand, G=info
     if (Array.isArray(rawEventsMatrix) && rawEventsMatrix.length > 1) {
         const header = rawEventsMatrix[0];
         const rows = rawEventsMatrix.slice(1);
@@ -600,16 +600,32 @@ const buildActionEventsFromSheet = (sheetData, rawEventsMatrix) => {
         const cStart = idx('start') !== -1 ? idx('start') : 3; // fallback D
         const cEnd = idx('end') !== -1 ? idx('end') : 4; // fallback E
         const cBrand = idx('brand') !== -1 ? idx('brand') : 5; // fallback F
+        const cInfo = 6; // Column G for additional information
 
         rows.forEach((r, rIdx) => {
             const email = (r[cEmail] || '').trim();
             const dateStr = (r[cDate] || '').trim();
-            const startStr = (r[cStart] || '').trim();
+            const startTime = (r[cStart] || '').trim();
+            const endTime = (r[cEnd] || '').trim();
             const brand = (r[cBrand] || '').trim();
+            const eventInfo = (r[cInfo] || '').trim();
+            
             if (!email || !dateStr || !brand) return;
+            
+            // Build time display
+            let timeDisplay = '';
+            if (startTime && endTime) {
+                timeDisplay = `${startTime} - ${endTime}`;
+            } else if (startTime) {
+                timeDisplay = startTime;
+            } else if (endTime) {
+                timeDisplay = `Until ${endTime}`;
+            }
+            
             // Build ISO date (YYYY-MM-DD from possible DD/MM/YYYY)
             const isoDate = convertFrenchDate(dateStr) || dateStr;
-            const iso = startStr ? `${isoDate}T${startStr}` : isoDate;
+            const iso = startTime ? `${isoDate}T${startTime}` : isoDate;
+            
             events.push({
                 id: `ev_${rIdx}`,
                 title: `${brand}`,
@@ -623,7 +639,11 @@ const buildActionEventsFromSheet = (sheetData, rawEventsMatrix) => {
                     actionType: 'Event',
                     email,
                     talent: '',
-                    originalStatus: 'Event' // Events sheet doesn't have Column H status
+                    originalStatus: 'Event',
+                    timeDisplay: timeDisplay,
+                    eventInfo: eventInfo,
+                    startTime: startTime,
+                    endTime: endTime
                 }
             });
         });
@@ -640,13 +660,44 @@ let allActionEvents = [];
 let toolboxMatrix = [];
 
 // Event Modal Function
-const showEventModal = (eventType, brand, status, language) => {
+const showEventModal = (eventType, brand, status, language, eventData = {}) => {
     const { t } = useTranslation(language);
     
     // Remove any existing modal
     const existingModal = document.getElementById('event-modal');
     if (existingModal) {
         existingModal.remove();
+    }
+    
+    // Build content based on event type
+    let middleContent = '';
+    
+    if (eventType === 'Event') {
+        // For Events from Events sheet: show Time and Information instead of Status
+        const timeDisplay = eventData.timeDisplay || 'N/A';
+        const eventInfo = eventData.eventInfo || '';
+        
+        middleContent = `
+            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <span class="font-medium text-gray-700">Time:</span>
+                <span class="font-semibold text-gray-900">${timeDisplay}</span>
+            </div>
+            
+            ${eventInfo ? `
+            <div class="p-3 bg-gray-50 rounded-lg">
+                <span class="font-medium text-gray-700">Information:</span>
+                <div class="mt-2 text-gray-900">${eventInfo}</div>
+            </div>
+            ` : ''}
+        `;
+    } else {
+        // For Preview/Post events: show Status
+        middleContent = `
+            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <span class="font-medium text-gray-700">Status:</span>
+                <span class="px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(status)}">${status}</span>
+            </div>
+        `;
     }
     
     // Create modal HTML
@@ -671,10 +722,7 @@ const showEventModal = (eventType, brand, status, language) => {
                         <span class="font-semibold text-gray-900">${brand}</span>
                     </div>
                     
-                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <span class="font-medium text-gray-700">Status:</span>
-                        <span class="px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(status)}">${status}</span>
-                    </div>
+                    ${middleContent}
                 </div>
                 
                 <div class="mt-6 flex justify-end">
@@ -945,8 +993,16 @@ const Dashboard = ({ campaigns, events = [], language }) => {
                         status = 'Fait';
                     }
                     
+                    // Prepare additional event data for Events from Events sheet
+                    const eventData = {
+                        timeDisplay: info.event.extendedProps?.timeDisplay,
+                        eventInfo: info.event.extendedProps?.eventInfo,
+                        startTime: info.event.extendedProps?.startTime,
+                        endTime: info.event.extendedProps?.endTime
+                    };
+                    
                     // Create and show popup modal
-                    showEventModal(eventType, brand, status, language);
+                    showEventModal(eventType, brand, status, language, eventData);
                 },
                 height: 'auto',
                 eventDisplay: 'block',
