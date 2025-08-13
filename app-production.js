@@ -695,6 +695,7 @@ let currentUser = null;
 let lastDataUpdate = null;
 let allActionEvents = [];
 let toolboxMatrix = [];
+let lastKnownEventCount = 0; // Track event count for notifications
 
 // Event Modal Function
 const showEventModal = (eventType, brand, status, language, eventData = {}) => {
@@ -826,8 +827,92 @@ const closeEventModal = (event) => {
     }
 };
 
+// Notifications Component
+const NotificationsBell = ({ userEvents, language }) => {
+    const { t } = useTranslation(language);
+    const [notifications, setNotifications] = React.useState([]);
+    const [showNotifications, setShowNotifications] = React.useState(false);
+    const [hasNewNotifications, setHasNewNotifications] = React.useState(false);
+
+    React.useEffect(() => {
+        // Check for new events compared to last known count
+        if (userEvents.length > lastKnownEventCount && lastKnownEventCount > 0) {
+            const newEvents = userEvents.slice(lastKnownEventCount);
+            const newNotifications = newEvents.map((event, index) => ({
+                id: `notif_${Date.now()}_${index}`,
+                message: `New ${event.extendedProps?.actionType || 'event'}: ${event.title}`,
+                time: new Date().toLocaleTimeString(),
+                type: event.extendedProps?.actionType || 'event'
+            }));
+            
+            setNotifications(prev => [...newNotifications, ...prev].slice(0, 10)); // Keep max 10
+            setHasNewNotifications(true);
+        }
+        lastKnownEventCount = userEvents.length;
+    }, [userEvents]);
+
+    const clearNotifications = () => {
+        setHasNewNotifications(false);
+        setShowNotifications(false);
+    };
+
+    return (
+        <div className="relative">
+            <button
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors relative"
+                title="Notifications"
+            >
+                <span className="text-lg">🔔</span>
+                {hasNewNotifications && (
+                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span>
+                )}
+            </button>
+            
+            {showNotifications && (
+                <div className="absolute right-0 top-12 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+                    <div className="p-4 border-b border-gray-200 flex justify-between items-center">
+                        <h3 className="font-semibold text-gray-900">Notifications</h3>
+                        <button 
+                            onClick={clearNotifications}
+                            className="text-xs text-blue-600 hover:text-blue-800"
+                        >
+                            Clear all
+                        </button>
+                    </div>
+                    <div className="max-h-64 overflow-y-auto">
+                        {notifications.length === 0 ? (
+                            <div className="p-4 text-center text-gray-500 text-sm">
+                                No new notifications
+                            </div>
+                        ) : (
+                            notifications.map(notif => (
+                                <div key={notif.id} className="p-3 border-b border-gray-100 last:border-b-0">
+                                    <div className="flex items-start justify-between">
+                                        <div className="flex-1">
+                                            <p className="text-sm text-gray-900">{notif.message}</p>
+                                            <p className="text-xs text-gray-500 mt-1">{notif.time}</p>
+                                        </div>
+                                        <span className={`ml-2 px-2 py-1 text-xs rounded-full ${
+                                            notif.type === 'Preview' ? 'bg-orange-100 text-orange-800' :
+                                            notif.type === 'Post' ? 'bg-blue-100 text-blue-800' :
+                                            'bg-purple-100 text-purple-800'
+                                        }`}>
+                                            {notif.type}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
 // Header Navigation Component
-const Navigation = ({ user, onLogout, currentTab, setCurrentTab, userCampaigns, language, toggleLanguage, lastUpdated, onRefresh }) => {
+const Navigation = ({ user, onLogout, currentTab, setCurrentTab, userCampaigns, userEvents, language, toggleLanguage, lastUpdated }) => {
     const { t } = useTranslation(language);
     const totalRevenue = userCampaigns.reduce((sum, c) => sum + c.Revenue, 0);
     
@@ -847,14 +932,8 @@ const Navigation = ({ user, onLogout, currentTab, setCurrentTab, userCampaigns, 
                     </div>
                     
                     <div className="flex items-center space-x-4">
-                        {/* Refresh Button */}
-                        <button
-                            onClick={onRefresh}
-                            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                            title="Refresh data from Google Sheets"
-                        >
-                            <span className="text-lg">🔄</span>
-                        </button>
+                        {/* Notifications Bell */}
+                        <NotificationsBell userEvents={userEvents} language={language} />
                         
                         {/* Language Toggle Button */}
                         <button
@@ -2283,7 +2362,16 @@ const App = () => {
     useEffect(() => {
         // No API key validation needed - using secure serverless function
         loadSheetData();
-    }, []);
+        
+        // Set up automatic refresh every 30 seconds for notifications
+        const interval = setInterval(() => {
+            if (currentUser && !loading) {
+                loadSheetData(true); // Force refresh to check for new events
+            }
+        }, 30000); // 30 seconds
+        
+        return () => clearInterval(interval);
+    }, [currentUser, loading]);
 
     const handleLogin = (user) => {
         setCurrentUser(user);
@@ -2306,9 +2394,7 @@ const App = () => {
         setCurrentTab('dashboard');
     };
 
-    const handleRefresh = () => {
-        loadSheetData(true);
-    };
+
 
     const handleRetry = () => {
         setError(null);
@@ -2362,10 +2448,10 @@ const App = () => {
                 currentTab={currentTab}
                 setCurrentTab={setCurrentTab}
                 userCampaigns={userCampaigns}
+                userEvents={userEvents}
                 language={language}
                 toggleLanguage={toggleLanguage}
                 lastUpdated={lastUpdated}
-                onRefresh={handleRefresh}
             />
             
             <main className="p-6">
