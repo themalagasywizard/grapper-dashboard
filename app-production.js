@@ -562,7 +562,6 @@ const buildActionEventsFromSheet = (sheetData, rawEventsMatrix) => {
 
         const makeEvent = (isoDate, actionType) => {
             const bgColor = actionType === 'Preview' ? '#f59e0b' : actionType === 'Post' ? '#3b82f6' : colorForStatus(status);
-            console.log(`Creating event: ${brand} (${actionType}) - Color: ${bgColor} - Email: ${email}`);
             return {
                 id: `evt_${index}_${actionType}`,
                 title: `${brand}`,
@@ -570,13 +569,14 @@ const buildActionEventsFromSheet = (sheetData, rawEventsMatrix) => {
                 backgroundColor: bgColor,
                 borderColor: 'transparent',
                 textColor: '#ffffff',
-                extendedProps: {
-                    brand,
-                    status,
-                    actionType,
-                    email,
-                    talent
-                }
+                            extendedProps: {
+                brand,
+                status,
+                actionType,
+                email,
+                talent,
+                originalStatus: status // Keep original status from Column H
+            }
             };
         };
 
@@ -610,7 +610,6 @@ const buildActionEventsFromSheet = (sheetData, rawEventsMatrix) => {
             // Build ISO date (YYYY-MM-DD from possible DD/MM/YYYY)
             const isoDate = convertFrenchDate(dateStr) || dateStr;
             const iso = startStr ? `${isoDate}T${startStr}` : isoDate;
-            console.log(`Creating Events sheet event: ${brand} (Event) - Color: #8b5cf6 - Email: ${email}`);
             events.push({
                 id: `ev_${rIdx}`,
                 title: `${brand}`,
@@ -623,7 +622,8 @@ const buildActionEventsFromSheet = (sheetData, rawEventsMatrix) => {
                     status: 'Event',
                     actionType: 'Event',
                     email,
-                    talent: ''
+                    talent: '',
+                    originalStatus: 'Event' // Events sheet doesn't have Column H status
                 }
             });
         });
@@ -638,6 +638,98 @@ let currentUser = null;
 let lastDataUpdate = null;
 let allActionEvents = [];
 let toolboxMatrix = [];
+
+// Event Modal Function
+const showEventModal = (eventType, brand, status, language) => {
+    const { t } = useTranslation(language);
+    
+    // Remove any existing modal
+    const existingModal = document.getElementById('event-modal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Create modal HTML
+    const modalHTML = `
+        <div id="event-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" onclick="closeEventModal(event)">
+            <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-xl" onclick="event.stopPropagation()">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold text-gray-900">Event Details</h3>
+                    <button onclick="closeEventModal()" class="text-gray-400 hover:text-gray-600">
+                        <span class="text-xl">&times;</span>
+                    </button>
+                </div>
+                
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <span class="font-medium text-gray-700">Type:</span>
+                        <span class="px-3 py-1 rounded-full text-sm font-medium ${getTypeColor(eventType)}">${eventType}</span>
+                    </div>
+                    
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <span class="font-medium text-gray-700">Brand:</span>
+                        <span class="font-semibold text-gray-900">${brand}</span>
+                    </div>
+                    
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <span class="font-medium text-gray-700">Status:</span>
+                        <span class="px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(status)}">${status}</span>
+                    </div>
+                </div>
+                
+                <div class="mt-6 flex justify-end">
+                    <button onclick="closeEventModal()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // Add modal to page
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Add escape key listener
+    const handleEscape = (e) => {
+        if (e.key === 'Escape') {
+            closeEventModal();
+            document.removeEventListener('keydown', handleEscape);
+        }
+    };
+    document.addEventListener('keydown', handleEscape);
+};
+
+// Helper function to get type-specific colors
+const getTypeColor = (type) => {
+    switch(type) {
+        case 'Preview': return 'bg-orange-100 text-orange-800';
+        case 'Post': return 'bg-blue-100 text-blue-800';
+        case 'Event': return 'bg-purple-100 text-purple-800';
+        default: return 'bg-gray-100 text-gray-800';
+    }
+};
+
+// Helper function to get status-specific colors
+const getStatusColor = (status) => {
+    const lower = status.toLowerCase();
+    if (lower.includes('fait') || lower.includes('complete') || lower.includes('termin')) {
+        return 'bg-green-100 text-green-800';
+    } else if (lower.includes('progress') || lower.includes('cours') || lower.includes('ongoing')) {
+        return 'bg-yellow-100 text-yellow-800';
+    } else if (lower.includes('cancel') || lower.includes('annul')) {
+        return 'bg-red-100 text-red-800';
+    }
+    return 'bg-gray-100 text-gray-800';
+};
+
+// Function to close modal
+const closeEventModal = (event) => {
+    if (event && event.target !== event.currentTarget) return; // Only close if clicking outside
+    const modal = document.getElementById('event-modal');
+    if (modal) {
+        modal.remove();
+    }
+};
 
 // Header Navigation Component
 const Navigation = ({ user, onLogout, currentTab, setCurrentTab, userCampaigns, language, toggleLanguage, lastUpdated, onRefresh }) => {
@@ -843,10 +935,18 @@ const Dashboard = ({ campaigns, events = [], language }) => {
                     }
                 },
                 eventClick: function(info) {
-                    const campaign = campaigns.find(c => c.Campaign_ID === info.event.id);
-                    if (campaign) {
-                        alert(`${t('marque')}: ${campaign.Brand_Name}\n${t('deadline')}: ${campaign.Date}\n${t('myRevenue')}: €${campaign.Revenue.toLocaleString()}\n${t('status')}: ${campaign.Status}\n${t('description')}: ${campaign.Description || t('noDescription')}`);
+                    // Get event details from extendedProps
+                    const eventType = info.event.extendedProps?.actionType || 'Campaign';
+                    const brand = info.event.extendedProps?.brand || info.event.title;
+                    let status = info.event.extendedProps?.originalStatus || info.event.extendedProps?.status || 'N/A';
+                    
+                    // Transform "Facture a envoyer" to "Fait"
+                    if (status.toLowerCase().includes('facture') && status.toLowerCase().includes('envoyer')) {
+                        status = 'Fait';
                     }
+                    
+                    // Create and show popup modal
+                    showEventModal(eventType, brand, status, language);
                 },
                 height: 'auto',
                 eventDisplay: 'block',
@@ -870,7 +970,6 @@ const Dashboard = ({ campaigns, events = [], language }) => {
                         else if (type === 'Event') enforcedBg = '#8b5cf6'; // purple
                         else if (originalBg) enforcedBg = originalBg;
                         
-                        console.log(`EventDidMount: Title="${info.event.title}" Type="${type}" OriginalBg="${originalBg}" EnforcedBg="${enforcedBg}"`);
                         
                         if (enforcedBg) {
                             // Completely override all background properties
