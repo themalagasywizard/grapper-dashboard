@@ -2295,6 +2295,7 @@ const App = () => {
     // Load Google Sheets data
     const loadSheetData = async (forceRefresh = false) => {
         try {
+            console.log('loadSheetData started', { forceRefresh, currentUser: !!currentUser });
             setLoading(true);
             setError(null);
             
@@ -2327,6 +2328,7 @@ const App = () => {
             toolboxMatrix = googleSheetsService.getToolboxMatrix();
             
             setLastUpdated(Date.now());
+            console.log('loadSheetData completed successfully');
             setLoading(false);
             
             // If user is logged in, refresh their campaigns
@@ -2342,6 +2344,7 @@ const App = () => {
             
         } catch (error) {
             console.error('Error loading Google Sheets data:', error);
+            console.log('loadSheetData failed, setting loading to false');
             
             // Provide more specific error messages
             let errorMessage = error.message || 'Unknown error occurred';
@@ -2362,16 +2365,22 @@ const App = () => {
     useEffect(() => {
         // No API key validation needed - using secure serverless function
         loadSheetData();
+    }, []);
+
+    // Set up automatic refresh for notifications (separate effect)
+    useEffect(() => {
+        if (!currentUser) return;
         
-        // Set up automatic refresh every 30 seconds for notifications
         const interval = setInterval(() => {
+            // Only refresh if user is logged in and not currently loading
             if (currentUser && !loading) {
+                console.log('Auto-refreshing for notifications...');
                 loadSheetData(true); // Force refresh to check for new events
             }
         }, 30000); // 30 seconds
         
         return () => clearInterval(interval);
-    }, [currentUser, loading]);
+    }, [currentUser]); // Only depend on currentUser, not loading
 
     const handleLogin = (user) => {
         setCurrentUser(user);
