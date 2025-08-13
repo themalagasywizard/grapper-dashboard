@@ -855,11 +855,16 @@ const Dashboard = ({ campaigns, events = [], language }) => {
                     }
                 },
                 eventDidMount: function(info) {
-                    // Enforce colors so nothing overrides them
+                    // Enforce colors so nothing overrides them, based on action type
                     try {
-                        const bg = info.event.backgroundColor || (info.event.extendedProps && info.event.extendedProps.backgroundColor);
-                        if (bg) {
-                            info.el.style.backgroundColor = bg;
+                        const type = (info.event.extendedProps && info.event.extendedProps.actionType) || '';
+                        let enforcedBg = null;
+                        if (type === 'Preview') enforcedBg = '#f59e0b'; // orange
+                        else if (type === 'Post') enforcedBg = '#3b82f6'; // blue
+                        else if (type === 'Event') enforcedBg = '#8b5cf6'; // purple
+                        else if (info.event.backgroundColor) enforcedBg = info.event.backgroundColor;
+                        if (enforcedBg) {
+                            info.el.style.backgroundColor = enforcedBg;
                             info.el.style.borderColor = 'transparent';
                             info.el.style.color = '#ffffff';
                         }
