@@ -873,9 +873,15 @@ const Dashboard = ({ campaigns, events = [], language }) => {
                         console.log(`EventDidMount: Title="${info.event.title}" Type="${type}" OriginalBg="${originalBg}" EnforcedBg="${enforcedBg}"`);
                         
                         if (enforcedBg) {
-                            info.el.style.backgroundColor = enforcedBg;
-                            info.el.style.borderColor = 'transparent';
-                            info.el.style.color = '#ffffff';
+                            info.el.style.setProperty('background-color', enforcedBg, 'important');
+                            info.el.style.setProperty('border-color', 'transparent', 'important');
+                            info.el.style.setProperty('color', '#ffffff', 'important');
+                            // Also set on any child elements that might override
+                            const eventContent = info.el.querySelector('.fc-event-main, .fc-list-event-title, .fc-event-title');
+                            if (eventContent) {
+                                eventContent.style.setProperty('background-color', enforcedBg, 'important');
+                                eventContent.style.setProperty('color', '#ffffff', 'important');
+                            }
                         }
                     } catch (_) {}
 
