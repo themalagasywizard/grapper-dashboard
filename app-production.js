@@ -70,9 +70,6 @@ const translations = {
         password: "Password",
         enterPassword: "Enter your password",
         signIn: "Sign In",
-        demoMode: "Production Mode - Live Google Sheet Data",
-        validEmails: "Valid emails",
-        anyPassword: "Password: any password works in demo mode",
         emailNotFound: "Email not found. Please check the \"Available Users\" list for valid emails.",
         enterBothFields: "Please enter both email and password",
         
@@ -181,9 +178,6 @@ const translations = {
         password: "Mot de passe",
         enterPassword: "Entrez votre mot de passe",
         signIn: "Se connecter",
-        demoMode: "Mode production - Données en direct Google Sheet",
-        validEmails: "E-mails valides",
-        anyPassword: "Mot de passe : n'importe quel mot de passe fonctionne en mode démo",
         emailNotFound: "E-mail non trouvé. Veuillez vérifier la liste \"Utilisateurs disponibles\" pour les e-mails valides.",
         enterBothFields: "Veuillez saisir l'e-mail et le mot de passe",
         
@@ -590,13 +584,14 @@ const buildActionEventsFromSheet = (sheetData, rawEventsMatrix) => {
         }
     });
 
-    // Parse Events worksheet: A=email, B=date, D=start time, E=end time, F=brand, G=info
+    // Parse Events worksheet: A=email, B=date, C=address, D=start time, E=end time, F=brand, G=info
     if (Array.isArray(rawEventsMatrix) && rawEventsMatrix.length > 1) {
         const header = rawEventsMatrix[0];
         const rows = rawEventsMatrix.slice(1);
         const idx = (name) => header.findIndex(h => (h || '').toLowerCase() === name.toLowerCase());
         const cEmail = idx('email') !== -1 ? idx('email') : 0; // fallback A
         const cDate = idx('date') !== -1 ? idx('date') : 1; // fallback B
+        const cAddress = 2; // Column C for address
         const cStart = idx('start') !== -1 ? idx('start') : 3; // fallback D
         const cEnd = idx('end') !== -1 ? idx('end') : 4; // fallback E
         const cBrand = idx('brand') !== -1 ? idx('brand') : 5; // fallback F
@@ -605,6 +600,7 @@ const buildActionEventsFromSheet = (sheetData, rawEventsMatrix) => {
         rows.forEach((r, rIdx) => {
             const email = (r[cEmail] || '').trim();
             const dateStr = (r[cDate] || '').trim();
+            const address = (r[cAddress] || '').trim();
             const startTime = (r[cStart] || '').trim();
             const endTime = (r[cEnd] || '').trim();
             const brand = (r[cBrand] || '').trim();
@@ -643,7 +639,8 @@ const buildActionEventsFromSheet = (sheetData, rawEventsMatrix) => {
                     timeDisplay: timeDisplay,
                     eventInfo: eventInfo,
                     startTime: startTime,
-                    endTime: endTime
+                    endTime: endTime,
+                    address: address
                 }
             });
         });
@@ -673,15 +670,25 @@ const showEventModal = (eventType, brand, status, language, eventData = {}) => {
     let middleContent = '';
     
     if (eventType === 'Event') {
-        // For Events from Events sheet: show Time and Information instead of Status
+        // For Events from Events sheet: show Time, Address, and Information instead of Status
         const timeDisplay = eventData.timeDisplay || 'N/A';
         const eventInfo = eventData.eventInfo || '';
+        const address = eventData.address || '';
         
         middleContent = `
             <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <span class="font-medium text-gray-700">Time:</span>
                 <span class="font-semibold text-gray-900">${timeDisplay}</span>
             </div>
+            
+            ${address ? `
+            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <span class="font-medium text-gray-700">Address:</span>
+                <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:text-blue-800 underline font-semibold">
+                    ${address}
+                </a>
+            </div>
+            ` : ''}
             
             ${eventInfo ? `
             <div class="p-3 bg-gray-50 rounded-lg">
@@ -998,7 +1005,8 @@ const Dashboard = ({ campaigns, events = [], language }) => {
                         timeDisplay: info.event.extendedProps?.timeDisplay,
                         eventInfo: info.event.extendedProps?.eventInfo,
                         startTime: info.event.extendedProps?.startTime,
-                        endTime: info.event.extendedProps?.endTime
+                        endTime: info.event.extendedProps?.endTime,
+                        address: info.event.extendedProps?.address
                     };
                     
                     // Create and show popup modal
@@ -2025,17 +2033,7 @@ const Login = ({ onLogin, availableUsers, language, toggleLanguage, loading }) =
                     </form>
                 )}
                 
-                <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-                    <p className="text-sm text-blue-700 text-center mb-2">
-                        <strong>{t('demoMode')}</strong>
-                    </p>
-                    {!loading && availableUsers.length > 0 && (
-                        <p className="text-xs text-blue-600 text-center">
-                            {t('validEmails')}: {availableUsers.slice(0, 3).map(u => u.email).join(', ')}<br />
-                            {t('anyPassword')}
-                        </p>
-                    )}
-                </div>
+
             </div>
         </div>
     );
@@ -2203,13 +2201,8 @@ const App = () => {
                     <img 
                         src="./logograpper.jpg" 
                         alt="Grapper Logo" 
-                        className="w-20 h-20 mx-auto mb-4 object-contain animate-pulse"
+                        className="w-20 h-20 mx-auto object-contain animate-pulse"
                     />
-                    <h2 className="text-xl font-bold text-gray-900">{t('loadingCampaignData')}</h2>
-                    <p className="text-gray-600">{t('parsingGoogleSheet')}</p>
-                    <div className="mt-4">
-                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-                    </div>
                 </div>
             </div>
         );
