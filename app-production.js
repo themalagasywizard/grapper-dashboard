@@ -564,7 +564,7 @@ const buildActionEventsFromSheet = (sheetData, rawEventsMatrix) => {
             id: `evt_${index}_${actionType}`,
             title: `${brand}`,
             date: isoDate,
-            backgroundColor: actionType === 'Preview' ? '#f59e0b' : actionType === 'Post' ? '#3b82f6' : '#8b5cf6', // Orange for Preview, Blue for Post, Purple for Events
+            backgroundColor: actionType === 'Preview' ? '#f59e0b' : actionType === 'Post' ? '#3b82f6' : colorForStatus(status),
             borderColor: 'transparent',
             textColor: '#ffffff',
             extendedProps: {
@@ -764,7 +764,27 @@ const Dashboard = ({ campaigns, events = [], language }) => {
             const today = new Date();
             today.setHours(0, 0, 0, 0); // Set to start of today
             
-            // Events are now passed through props and already colored correctly
+            // All events for calendar view (including past events)
+            const allEvents = campaigns.map(campaign => {
+                const isCompleted = campaign.Status === 'Completed';
+                const backgroundColor = isCompleted ? '#22c55e' : '#6366f1'; // Green for completed, purple for upcoming
+                
+                console.log(`Calendar Event: ${campaign.Brand_Name} - Status: "${campaign.Status}" - Color: ${backgroundColor}`);
+                
+                return {
+                    id: campaign.Campaign_ID,
+                    title: `${campaign.Brand_Name}`,
+                    date: campaign.Date, // This is the Date Fin
+                    extendedProps: {
+                        revenue: campaign.Revenue,
+                        talent: campaign.Talent,
+                        status: campaign.Status
+                    },
+                    backgroundColor: backgroundColor,
+                    borderColor: 'transparent',
+                    textColor: '#ffffff'
+                };
+            });
 
             const isSmallScreen = window.matchMedia('(max-width: 640px)').matches;
             calendarInstance.current = new FullCalendar.Calendar(calendarRef.current, {
@@ -835,6 +855,16 @@ const Dashboard = ({ campaigns, events = [], language }) => {
                     }
                 },
                 eventDidMount: function(info) {
+                    // Enforce colors so nothing overrides them
+                    try {
+                        const bg = info.event.backgroundColor || (info.event.extendedProps && info.event.extendedProps.backgroundColor);
+                        if (bg) {
+                            info.el.style.backgroundColor = bg;
+                            info.el.style.borderColor = 'transparent';
+                            info.el.style.color = '#ffffff';
+                        }
+                    } catch (_) {}
+
                     // Add revenue information to list view events
                     if (info.view.type === 'upcomingList' || info.view.type.includes('list')) {
                         const campaign = campaigns.find(c => c.Campaign_ID === info.event.id);
