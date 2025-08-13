@@ -560,21 +560,25 @@ const buildActionEventsFromSheet = (sheetData, rawEventsMatrix) => {
             return '#6366f1';
         };
 
-        const makeEvent = (isoDate, actionType) => ({
-            id: `evt_${index}_${actionType}`,
-            title: `${brand}`,
-            date: isoDate,
-            backgroundColor: actionType === 'Preview' ? '#f59e0b' : actionType === 'Post' ? '#3b82f6' : colorForStatus(status),
-            borderColor: 'transparent',
-            textColor: '#ffffff',
-            extendedProps: {
-                brand,
-                status,
-                actionType,
-                email,
-                talent
-            }
-        });
+        const makeEvent = (isoDate, actionType) => {
+            const bgColor = actionType === 'Preview' ? '#f59e0b' : actionType === 'Post' ? '#3b82f6' : colorForStatus(status);
+            console.log(`Creating event: ${brand} (${actionType}) - Color: ${bgColor} - Email: ${email}`);
+            return {
+                id: `evt_${index}_${actionType}`,
+                title: `${brand}`,
+                date: isoDate,
+                backgroundColor: bgColor,
+                borderColor: 'transparent',
+                textColor: '#ffffff',
+                extendedProps: {
+                    brand,
+                    status,
+                    actionType,
+                    email,
+                    talent
+                }
+            };
+        };
 
         const dPreview = convertFrenchDate(preview);
         if (dPreview) {
@@ -606,6 +610,7 @@ const buildActionEventsFromSheet = (sheetData, rawEventsMatrix) => {
             // Build ISO date (YYYY-MM-DD from possible DD/MM/YYYY)
             const isoDate = convertFrenchDate(dateStr) || dateStr;
             const iso = startStr ? `${isoDate}T${startStr}` : isoDate;
+            console.log(`Creating Events sheet event: ${brand} (Event) - Color: #8b5cf6 - Email: ${email}`);
             events.push({
                 id: `ev_${rIdx}`,
                 title: `${brand}`,
@@ -858,11 +863,15 @@ const Dashboard = ({ campaigns, events = [], language }) => {
                     // Enforce colors so nothing overrides them, based on action type
                     try {
                         const type = (info.event.extendedProps && info.event.extendedProps.actionType) || '';
+                        const originalBg = info.event.backgroundColor;
                         let enforcedBg = null;
                         if (type === 'Preview') enforcedBg = '#f59e0b'; // orange
                         else if (type === 'Post') enforcedBg = '#3b82f6'; // blue
                         else if (type === 'Event') enforcedBg = '#8b5cf6'; // purple
-                        else if (info.event.backgroundColor) enforcedBg = info.event.backgroundColor;
+                        else if (originalBg) enforcedBg = originalBg;
+                        
+                        console.log(`EventDidMount: Title="${info.event.title}" Type="${type}" OriginalBg="${originalBg}" EnforcedBg="${enforcedBg}"`);
+                        
                         if (enforcedBg) {
                             info.el.style.backgroundColor = enforcedBg;
                             info.el.style.borderColor = 'transparent';
