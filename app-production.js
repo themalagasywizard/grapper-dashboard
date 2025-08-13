@@ -764,27 +764,7 @@ const Dashboard = ({ campaigns, events = [], language }) => {
             const today = new Date();
             today.setHours(0, 0, 0, 0); // Set to start of today
             
-            // All events for calendar view (including past events)
-            const allEvents = campaigns.map(campaign => {
-                const isCompleted = campaign.Status === 'Completed';
-                const backgroundColor = isCompleted ? '#22c55e' : '#6366f1'; // Green for completed, purple for upcoming
-                
-                console.log(`Calendar Event: ${campaign.Brand_Name} - Status: "${campaign.Status}" - Color: ${backgroundColor}`);
-                
-                return {
-                    id: campaign.Campaign_ID,
-                    title: `${campaign.Brand_Name}`,
-                    date: campaign.Date, // This is the Date Fin
-                    extendedProps: {
-                        revenue: campaign.Revenue,
-                        talent: campaign.Talent,
-                        status: campaign.Status
-                    },
-                    backgroundColor: backgroundColor,
-                    borderColor: 'transparent',
-                    textColor: '#ffffff'
-                };
-            });
+            // Events are now passed through props and already colored correctly
 
             const isSmallScreen = window.matchMedia('(max-width: 640px)').matches;
             calendarInstance.current = new FullCalendar.Calendar(calendarRef.current, {
