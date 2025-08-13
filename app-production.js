@@ -564,7 +564,7 @@ const buildActionEventsFromSheet = (sheetData, rawEventsMatrix) => {
             id: `evt_${index}_${actionType}`,
             title: `${brand}`,
             date: isoDate,
-            backgroundColor: actionType === 'Preview' ? '#f59e0b' : actionType === 'Post' ? '#3b82f6' : colorForStatus(status),
+            backgroundColor: actionType === 'Preview' ? '#f59e0b' : actionType === 'Post' ? '#3b82f6' : '#8b5cf6', // Orange for Preview, Blue for Post, Purple for Events
             borderColor: 'transparent',
             textColor: '#ffffff',
             extendedProps: {
@@ -610,7 +610,7 @@ const buildActionEventsFromSheet = (sheetData, rawEventsMatrix) => {
                 id: `ev_${rIdx}`,
                 title: `${brand}`,
                 date: iso,
-                backgroundColor: '#10b981', // green for Events
+                backgroundColor: '#8b5cf6', // purple for Events
                 borderColor: 'transparent',
                 textColor: '#ffffff',
                 extendedProps: {
