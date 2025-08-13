@@ -350,6 +350,8 @@ class GoogleSheetsService {
 
             // Capture toolbox raw matrix
             this.toolboxMatrix = Array.isArray(result.toolbox) ? result.toolbox : [];
+            // Capture raw Events sheet
+            this.eventsMatrix = Array.isArray(result.events) ? result.events : [];
 
             // Cache the result
             this.lastFetch = {
@@ -381,6 +383,10 @@ class GoogleSheetsService {
 
     getToolboxMatrix() {
         return this.toolboxMatrix || [];
+    }
+
+    getEventsMatrix() {
+        return this.eventsMatrix || [];
     }
 }
 
@@ -534,7 +540,7 @@ const transformSheetDataToCampaigns = (sheetData) => {
 };
 
 // Build calendar events for Preview (Column E) and Post (Column G) with color/status from Column H
-const buildActionEventsFromSheet = (sheetData) => {
+const buildActionEventsFromSheet = (sheetData, rawEventsMatrix) => {
     const events = [];
     sheetData.forEach((row, index) => {
         // Email is in Talent (A) per new DB; fallback to Mail if needed
@@ -558,7 +564,7 @@ const buildActionEventsFromSheet = (sheetData) => {
             id: `evt_${index}_${actionType}`,
             title: `${brand}`,
             date: isoDate,
-            backgroundColor: colorForStatus(status),
+            backgroundColor: actionType === 'Preview' ? '#f59e0b' : actionType === 'Post' ? '#3b82f6' : colorForStatus(status),
             borderColor: 'transparent',
             textColor: '#ffffff',
             extendedProps: {
@@ -579,6 +585,44 @@ const buildActionEventsFromSheet = (sheetData) => {
             events.push(makeEvent(dPost, 'Post'));
         }
     });
+
+    // Parse Events worksheet: A=email, B=date, D=start time, E=end time, F=brand
+    if (Array.isArray(rawEventsMatrix) && rawEventsMatrix.length > 1) {
+        const header = rawEventsMatrix[0];
+        const rows = rawEventsMatrix.slice(1);
+        const idx = (name) => header.findIndex(h => (h || '').toLowerCase() === name.toLowerCase());
+        const cEmail = idx('email') !== -1 ? idx('email') : 0; // fallback A
+        const cDate = idx('date') !== -1 ? idx('date') : 1; // fallback B
+        const cStart = idx('start') !== -1 ? idx('start') : 3; // fallback D
+        const cEnd = idx('end') !== -1 ? idx('end') : 4; // fallback E
+        const cBrand = idx('brand') !== -1 ? idx('brand') : 5; // fallback F
+
+        rows.forEach((r, rIdx) => {
+            const email = (r[cEmail] || '').trim();
+            const dateStr = (r[cDate] || '').trim();
+            const startStr = (r[cStart] || '').trim();
+            const brand = (r[cBrand] || '').trim();
+            if (!email || !dateStr || !brand) return;
+            // Build ISO date (YYYY-MM-DD from possible DD/MM/YYYY)
+            const isoDate = convertFrenchDate(dateStr) || dateStr;
+            const iso = startStr ? `${isoDate}T${startStr}` : isoDate;
+            events.push({
+                id: `ev_${rIdx}`,
+                title: `${brand}`,
+                date: iso,
+                backgroundColor: '#10b981', // green for Events
+                borderColor: 'transparent',
+                textColor: '#ffffff',
+                extendedProps: {
+                    brand,
+                    status: 'Event',
+                    actionType: 'Event',
+                    email,
+                    talent: ''
+                }
+            });
+        });
+    }
     return events;
 };
 
@@ -1854,7 +1898,7 @@ const App = () => {
             
             // Extract all campaigns and action events
             allCampaigns = transformSheetDataToCampaigns(sheetData);
-            allActionEvents = buildActionEventsFromSheet(sheetData);
+            allActionEvents = buildActionEventsFromSheet(sheetData, googleSheetsService.getEventsMatrix());
 
             // Prefer dedicated Mail sheet for login emails if provided
             const loginEmails = googleSheetsService.getLoginEmails();

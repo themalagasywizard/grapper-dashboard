@@ -23,6 +23,7 @@ exports.handler = async (event, context) => {
         const CAMPAIGNS_RANGE = process.env.GOOGLE_SHEETS_CAMPAIGNS_RANGE || process.env.GOOGLE_SHEETS_RANGE || 'Global1!A1:AC2000';
         const LOGIN_RANGE = process.env.GOOGLE_SHEETS_LOGIN_RANGE || 'Mail!A1:A2000';
         const TOOLBOX_RANGE = process.env.GOOGLE_SHEETS_TOOLBOX_RANGE || "'Boite à Outil'!A1:ZZ2000";
+        const EVENTS_RANGE = process.env.GOOGLE_SHEETS_EVENTS_RANGE || 'Events!A1:Z2000';
 
         // Validate environment variables
         if (!API_KEY || !SPREADSHEET_ID) {
@@ -40,7 +41,7 @@ exports.handler = async (event, context) => {
         }
 
         // Use batchGet to fetch campaigns and login emails in one request
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values:batchGet?ranges=${encodeURIComponent(CAMPAIGNS_RANGE)}&ranges=${encodeURIComponent(LOGIN_RANGE)}&ranges=${encodeURIComponent(TOOLBOX_RANGE)}&key=${API_KEY}`;
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values:batchGet?ranges=${encodeURIComponent(CAMPAIGNS_RANGE)}&ranges=${encodeURIComponent(LOGIN_RANGE)}&ranges=${encodeURIComponent(TOOLBOX_RANGE)}&ranges=${encodeURIComponent(EVENTS_RANGE)}&key=${API_KEY}`;
 
         console.log('Fetching from Google Sheets (batchGet)...', { SPREADSHEET_ID, CAMPAIGNS_RANGE, LOGIN_RANGE });
 
@@ -79,6 +80,7 @@ exports.handler = async (event, context) => {
         const campaignsValues = data.valueRanges[0]?.values || [];
         const mailValues = data.valueRanges[1]?.values || [];
         const toolboxValues = data.valueRanges[2]?.values || [];
+        const eventsValues = data.valueRanges[3]?.values || [];
 
         // Flatten login emails from first column, skip header if any
         const loginEmails = mailValues
@@ -89,7 +91,8 @@ exports.handler = async (event, context) => {
         console.log('Successfully fetched data:', {
             campaignsRows: campaignsValues.length,
             loginEmailsCount: loginEmails.length,
-            toolboxRows: toolboxValues.length
+            toolboxRows: toolboxValues.length,
+            eventsRows: eventsValues.length
         });
 
         return {
@@ -100,6 +103,7 @@ exports.handler = async (event, context) => {
                 data: campaignsValues,
                 loginEmails,
                 toolbox: toolboxValues,
+                events: eventsValues,
                 rowCount: campaignsValues.length,
                 timestamp: new Date().toISOString()
             })
