@@ -837,7 +837,7 @@ const Navigation = ({ user, onLogout, currentTab, setCurrentTab, userCampaigns, 
                 <div className="flex justify-between items-center py-4">
                     <div className="flex items-center space-x-4">
                         <img 
-                            src="./logograpper.jpg" 
+                            src="./logo.jpg.png" 
                             alt="Grapper Logo" 
                             className="w-12 h-12 object-contain"
                         />
@@ -2009,7 +2009,7 @@ const Login = ({ onLogin, availableUsers, language, toggleLanguage, loading }) =
             <div className="max-w-md w-full space-y-8">
                 <div className="text-center">
                     <img 
-                        src="./logograpper.jpg" 
+                        src="./logo.jpg.png" 
                         alt="Grapper Logo" 
                         className="w-20 h-20 mx-auto mb-4 object-contain"
                     />
@@ -2096,7 +2096,7 @@ const ErrorDisplay = ({ error, onRetry, language }) => {
         <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
             <div className="max-w-md w-full text-center">
                 <img 
-                    src="./logograpper.jpg" 
+                    src="./logo.jpg.png" 
                     alt="Grapper Logo" 
                     className="w-20 h-20 mx-auto mb-4 object-contain"
                 />
@@ -2254,7 +2254,7 @@ const App = () => {
             <div className="min-h-screen bg-gray-50 flex items-center justify-center">
                 <div className="text-center">
                     <img 
-                        src="./logograpper.jpg" 
+                        src="./logo.jpg.png" 
                         alt="Grapper Logo" 
                         className="w-20 h-20 mx-auto object-contain animate-pulse"
                     />
