@@ -83,15 +83,25 @@ exports.handler = async (event, context) => {
         const eventsValues = data.valueRanges[3]?.values || [];
 
         // Process login data with emails and passwords from columns A and B
+        console.log('Mail worksheet raw data (first 5 rows):', mailValues.slice(0, 5));
+        
         const loginData = mailValues
-            .map(row => {
+            .map((row, index) => {
                 if (!Array.isArray(row) || !row[0]) return null;
                 const email = (row[0] || '').trim();
                 const password = (row[1] || '').trim(); // Column B for password
+                
+                // Debug log for first few rows
+                if (index < 5) {
+                    console.log(`Row ${index}: email="${email}", password="${password}", rawRow:`, row);
+                }
+                
                 if (!email || !email.includes('@')) return null;
                 return { email, password };
             })
             .filter(item => item !== null);
+            
+        console.log('Processed login data (first 3 items):', loginData.slice(0, 3));
         
         // Keep backward compatibility for loginEmails
         const loginEmails = loginData.map(item => item.email);

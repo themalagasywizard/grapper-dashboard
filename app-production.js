@@ -2143,20 +2143,19 @@ const Login = ({ onLogin, availableUsers, language, toggleLanguage, loading }) =
         // Debug logging for password validation
         console.log('Password Debug:', {
             userEmail: user.email,
-            userPassword: user.password,
-            enteredPassword: password,
-            hasPassword: !!(user.password && user.password.trim() !== '')
+            hasPassword: !!(user.password && user.password.trim() !== ''),
+            passwordMatch: user.password === password
         });
         
         // Check password validation
         if (user.password && user.password.trim() !== '') {
-            // User has a specific password set - must match exactly
+            // User has a specific password set in Mail worksheet column B
             if (password !== user.password) {
                 setError(t('invalidPassword'));
                 return;
             }
         }
-        // If user.password is empty or undefined, any password works (legacy behavior)
+        // If no password is set in Mail worksheet column B, any password works
         
         onLogin(user);
     };
@@ -2318,7 +2317,7 @@ const App = () => {
             allCampaigns = transformSheetDataToCampaigns(sheetData);
             allActionEvents = buildActionEventsFromSheet(sheetData, googleSheetsService.getEventsMatrix());
 
-            // Prefer dedicated Mail sheet login data with passwords if provided
+            // Always use Mail sheet data for login (contains passwords)
             const loginData = googleSheetsService.getLoginData();
             console.log('Login Data Debug:', {
                 loginDataLength: loginData?.length || 0,
@@ -2326,7 +2325,8 @@ const App = () => {
                 hasLoginData: Array.isArray(loginData) && loginData.length > 0
             });
             
-            if (Array.isArray(loginData) && loginData.length > 0) {
+            // Force use of login data with passwords, don't fall back
+            if (Array.isArray(loginData)) {
                 availableUsers = buildUsersFromLoginData(loginData, sheetData);
                 console.log('Built users from login data:', availableUsers.slice(0, 3));
             } else {
