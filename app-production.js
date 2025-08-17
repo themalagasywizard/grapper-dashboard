@@ -2376,20 +2376,8 @@ const App = () => {
             // Always use Mail sheet data for login (contains passwords)
             const loginData = googleSheetsService.getLoginData();
             
-            // TEMPORARY: Manual password override until serverless function is fixed
-            if (Array.isArray(loginData)) {
-                loginData.forEach(item => {
-                    if (item.email === 'marine@grapperagency.com' && (!item.password || item.password.trim() === '')) {
-                        item.password = 'Mot de Passe'; // Replace with actual password from column B
-                        console.log('Applied manual password override for marine@grapperagency.com');
-                    }
-                });
-            }
-            
-            // Skip header row if present (first row of Mail worksheet)
-            const loginDataWithoutHeader = Array.isArray(loginData) && loginData.length > 0 
-                ? loginData[0].email === 'Mail' ? loginData.slice(1) : loginData
-                : [];
+            // Skip header row if present (serverless already strips header)
+            const loginDataWithoutHeader = Array.isArray(loginData) ? loginData : [];
             
             console.log('Login Data Debug:', {
                 originalLength: loginData?.length || 0,
