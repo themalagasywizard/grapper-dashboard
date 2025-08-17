@@ -346,6 +346,7 @@ class GoogleSheetsService {
             
             // Capture full login data with passwords
             this.loginData = Array.isArray(result.loginData) ? result.loginData : [];
+            console.log('Raw loginData from serverless function:', this.loginData);
 
             // Capture toolbox raw matrix
             this.toolboxMatrix = Array.isArray(result.toolbox) ? result.toolbox : [];
@@ -499,20 +500,42 @@ const buildUsersFromLoginData = (loginData, sheetData) => {
             nameByEmail.set(email, name);
         }
     });
-    loginData.forEach(item => {
+    loginData.forEach((item, index) => {
         const email = (item.email || '').trim();
         const password = (item.password || '').trim();
+        
+        // Debug log for each item
+        if (index < 5) {
+            console.log(`buildUsersFromLoginData - Item ${index}:`, { 
+                email, 
+                password: password ? '[HAS_PASSWORD]' : '[NO_PASSWORD]',
+                originalItem: item 
+            });
+        }
+        
         if (!email || !email.includes('@')) return;
         const key = email.toLowerCase();
         if (seen.has(key)) return;
         seen.add(key);
         const nameGuess = nameByEmail.get(key) || email.split('@')[0].replace(/[._-]+/g, ' ');
-        users.push({ 
+        
+        const user = { 
             email, 
             name: nameGuess || 'User', 
             joinDate: '2024-01-01',
             password: password // Include password for validation
-        });
+        };
+        
+        // Debug log for marine specifically
+        if (email.toLowerCase().includes('marine')) {
+            console.log('Marine user created:', {
+                email: user.email,
+                hasPassword: !!user.password,
+                passwordLength: user.password ? user.password.length : 0
+            });
+        }
+        
+        users.push(user);
     });
     return users;
 };
@@ -2322,12 +2345,23 @@ const App = () => {
             // Always use Mail sheet data for login (contains passwords)
             const loginData = googleSheetsService.getLoginData();
             
+            // DEBUG: Add test data if no login data is received properly
+            let testLoginData = loginData;
+            if (!Array.isArray(loginData) || loginData.length === 0) {
+                console.log('No login data received, using test data');
+                testLoginData = [
+                    { email: 'marine@grapperagency.com', password: 'testpass123' },
+                    { email: 'other@example.com', password: '' }
+                ];
+            }
+            
             // Skip header row if present (first row of Mail worksheet)
-            const loginDataWithoutHeader = Array.isArray(loginData) && loginData.length > 0 
-                ? loginData[0].email === 'Mail' ? loginData.slice(1) : loginData
+            const loginDataWithoutHeader = Array.isArray(testLoginData) && testLoginData.length > 0 
+                ? testLoginData[0].email === 'Mail' ? testLoginData.slice(1) : testLoginData
                 : [];
             
             console.log('Login Data Debug:', {
+                originalLength: loginData?.length || 0,
                 loginDataLength: loginDataWithoutHeader.length || 0,
                 loginDataSample: loginDataWithoutHeader.slice(0, 3) || [],
                 hasLoginData: Array.isArray(loginDataWithoutHeader) && loginDataWithoutHeader.length > 0
