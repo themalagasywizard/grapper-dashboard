@@ -2365,27 +2365,22 @@ const App = () => {
             // Always use Mail sheet data for login (contains passwords)
             const loginData = googleSheetsService.getLoginData();
             
-            // The serverless function now strips the header row.
-            const loginDataWithoutHeader = Array.isArray(loginData) ? loginData : [];
-            
+            // The serverless function should strip the header, but we'll double-check to prevent errors.
+            const loginDataWithoutHeader = Array.isArray(loginData) && loginData.length > 0
+                ? (normalizeString(loginData[0].email) === 'mail' ? loginData.slice(1) : loginData)
+                : [];
+
             console.log('Login Data Debug:', {
-                loginDataLength: loginDataWithoutHeader.length || 0,
-                loginDataSample: loginDataWithoutHeader.slice(0, 3).map(u => ({ email: u.email, hasPassword: !!u.password })),
+                loginDataLength: loginDataWithoutHeader.length,
+                sample: loginDataWithoutHeader.slice(0, 3).map(u => ({ email: u.email, hasPassword: !!(u.password && u.password.trim()) }))
             });
             
-            // Force use of login data with passwords, don't fall back
-            if (Array.isArray(loginDataWithoutHeader) && loginDataWithoutHeader.length > 0) {
+            // Use login data with passwords.
+            if (loginDataWithoutHeader.length > 0) {
                 availableUsers = buildUsersFromLoginData(loginDataWithoutHeader, sheetData);
             } else {
-                // Fallback to old email-only method
-                const loginEmails = googleSheetsService.getLoginEmails();
-                console.log('Fallback to login emails:', loginEmails?.slice(0, 3) || []);
-                if (Array.isArray(loginEmails) && loginEmails.length > 0) {
-                    availableUsers = buildUsersFromLoginEmails(loginEmails, sheetData);
-                } else {
-                    // Final fallback to deriving users from main sheet
-                    availableUsers = extractUsersFromSheetData(sheetData);
-                }
+                // Fallback for safety, though it should not be reached if the function works.
+                availableUsers = extractUsersFromSheetData(sheetData);
             }
             // Capture toolbox matrix
             toolboxMatrix = googleSheetsService.getToolboxMatrix();
