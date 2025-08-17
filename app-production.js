@@ -2163,15 +2163,25 @@ const Login = ({ onLogin, availableUsers, language, toggleLanguage, loading }) =
             return;
         }
         
-        const hasSetPassword = !!(user.password && user.password.trim() !== '');
-        const passwordMatches = hasSetPassword ? password === user.password : true;
+        // Clean up passwords by removing all whitespace and normalizing
+        const cleanPassword = (pwd) => (pwd || '').trim().replace(/\s+/g, '');
+        const userPassword = cleanPassword(user.password);
+        const enteredPassword = cleanPassword(password);
+        
+        const hasSetPassword = !!userPassword;
+        const passwordMatches = hasSetPassword ? userPassword === enteredPassword : true;
         
         // Debug logging for password validation
         console.log('Password Debug:', {
             userEmail: user.email,
             hasPassword: hasSetPassword,
             passwordRequired: hasSetPassword,
-            isValidPassword: passwordMatches
+            isValidPassword: passwordMatches,
+            userPasswordLength: userPassword.length,
+            enteredPasswordLength: enteredPassword.length,
+            // Show first and last character of each password for debugging
+            userPasswordHint: userPassword ? `${userPassword[0]}...${userPassword[userPassword.length-1]}` : '',
+            enteredPasswordHint: enteredPassword ? `${enteredPassword[0]}...${enteredPassword[enteredPassword.length-1]}` : ''
         });
         
         // Check password validation
