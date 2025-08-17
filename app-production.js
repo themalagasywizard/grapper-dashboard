@@ -2141,12 +2141,10 @@ const Login = ({ onLogin, availableUsers, language, toggleLanguage, loading }) =
         }
         
         // Check password validation
-        if (user.password && user.password.trim() !== '') {
+        if (user.password && user.password.trim() !== '' && password !== user.password) {
             // User has a specific password set - must match
-            if (password !== user.password) {
-                setError(t('invalidPassword'));
-                return;
-            }
+            setError(t('invalidPassword'));
+            return;
         }
         // If user.password is empty or undefined, any password works (legacy behavior)
         
