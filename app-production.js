@@ -2164,12 +2164,33 @@ const Login = ({ onLogin, availableUsers, language, toggleLanguage, loading }) =
         }
         
         // Clean up passwords by removing all whitespace and normalizing
-        const cleanPassword = (pwd) => (pwd || '').trim().replace(/\s+/g, '');
+        const cleanPassword = (pwd) => {
+            const cleaned = (pwd || '').trim();
+            console.log('Password cleaning:', {
+                original: pwd,
+                cleaned: cleaned,
+                length: cleaned.length,
+                charCodes: Array.from(cleaned).map(c => c.charCodeAt(0))
+            });
+            return cleaned;
+        };
+        
         const userPassword = cleanPassword(user.password);
         const enteredPassword = cleanPassword(password);
         
         const hasSetPassword = !!userPassword;
         const passwordMatches = hasSetPassword ? userPassword === enteredPassword : true;
+        
+        // Log detailed password comparison
+        if (hasSetPassword) {
+            console.log('Password comparison:', {
+                userPasswordLength: userPassword.length,
+                enteredPasswordLength: enteredPassword.length,
+                userPasswordChars: Array.from(userPassword).map(c => c.charCodeAt(0)),
+                enteredPasswordChars: Array.from(enteredPassword).map(c => c.charCodeAt(0)),
+                matches: userPassword === enteredPassword
+            });
+        }
         
         // Debug logging for password validation
         console.log('Password Debug:', {
