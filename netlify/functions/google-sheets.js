@@ -92,20 +92,38 @@ exports.handler = async (event, context) => {
             const header = mailValues[0].map(h => normalize(h));
             const rows = mailValues.slice(1);
 
-            // Find email column: prefer headers containing 'mail' or 'email'
-            const emailIdx = header.findIndex(h => h.includes('mail') || h.includes('email'));
-            // Find password column: support 'mot de passe', 'motde passe', 'password', 'mdp'
-            const passwordIdx = header.findIndex(h => h.includes('mot de passe') || h.includes('motde passe') || h.includes('password') || h === 'mdp' || h.includes('motdepasse'));
+            // Always use column A for email and column B for password
+            const emailIdx = 0;  // Column A
+            const passwordIdx = 1;  // Column B
+            
+            console.log('Mail worksheet structure:', {
+                header,
+                firstRow: rows[0],
+                emailIdx,
+                passwordIdx,
+                totalColumns: mailValues[0].length
+            });
 
             console.log('Detected columns:', { emailIdx, passwordIdx, headerRaw: mailValues[0] });
 
             loginData = rows
                 .map((row, index) => {
+                    // Ensure we have both columns
+                    if (!Array.isArray(row) || row.length < 2) {
+                        console.log(`Row ${index + 2} missing data:`, row);
+                        return null;
+                    }
+
                     const email = (row[emailIdx] || '').toString().trim();
                     const password = (row[passwordIdx] || '').toString().trim();
 
                     if (index < 5) {
-                        console.log(`Row ${index + 2}:`, { email, passwordMasked: password ? '[HAS_PASSWORD]' : '[NO_PASSWORD]', rawRow: row });
+                        console.log(`Row ${index + 2}:`, {
+                            email,
+                            passwordMasked: password ? '[HAS_PASSWORD]' : '[NO_PASSWORD]',
+                            rawRow: row,
+                            rowLength: row.length
+                        });
                     }
 
                     if (!email || !email.includes('@')) return null;
