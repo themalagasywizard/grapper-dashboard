@@ -2181,17 +2181,6 @@ const Login = ({ onLogin, availableUsers, language, toggleLanguage, loading }) =
         const hasSetPassword = !!userPassword;
         const passwordMatches = hasSetPassword ? userPassword === enteredPassword : true;
         
-        // Log detailed password comparison
-        if (hasSetPassword) {
-            console.log('Password comparison:', {
-                userPasswordLength: userPassword.length,
-                enteredPasswordLength: enteredPassword.length,
-                userPasswordChars: Array.from(userPassword).map(c => c.charCodeAt(0)),
-                enteredPasswordChars: Array.from(enteredPassword).map(c => c.charCodeAt(0)),
-                matches: userPassword === enteredPassword
-            });
-        }
-        
         // Debug logging for password validation
         console.log('Password Debug:', {
             userEmail: user.email,
@@ -2376,23 +2365,17 @@ const App = () => {
             // Always use Mail sheet data for login (contains passwords)
             const loginData = googleSheetsService.getLoginData();
             
-            // Skip header row if present (serverless already strips header)
+            // The serverless function now strips the header row.
             const loginDataWithoutHeader = Array.isArray(loginData) ? loginData : [];
             
             console.log('Login Data Debug:', {
-                originalLength: loginData?.length || 0,
                 loginDataLength: loginDataWithoutHeader.length || 0,
-                loginDataSample: loginDataWithoutHeader.slice(0, 3) || [],
-                hasLoginData: Array.isArray(loginDataWithoutHeader) && loginDataWithoutHeader.length > 0
+                loginDataSample: loginDataWithoutHeader.slice(0, 3).map(u => ({ email: u.email, hasPassword: !!u.password })),
             });
             
             // Force use of login data with passwords, don't fall back
             if (Array.isArray(loginDataWithoutHeader) && loginDataWithoutHeader.length > 0) {
                 availableUsers = buildUsersFromLoginData(loginDataWithoutHeader, sheetData);
-                console.log('Built users from login data:', availableUsers.map(u => ({
-                    email: u.email,
-                    hasPassword: !!u.password
-                })).slice(0, 3));
             } else {
                 // Fallback to old email-only method
                 const loginEmails = googleSheetsService.getLoginEmails();

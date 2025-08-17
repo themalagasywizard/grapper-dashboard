@@ -21,7 +21,7 @@ exports.handler = async (event, context) => {
         const SPREADSHEET_ID = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
         // Default ranges can be overridden via env
         const CAMPAIGNS_RANGE = process.env.GOOGLE_SHEETS_CAMPAIGNS_RANGE || process.env.GOOGLE_SHEETS_RANGE || 'Global1!A1:AC2000';
-        const LOGIN_RANGE = process.env.GOOGLE_SHEETS_LOGIN_RANGE || 'Mail!A1:ZZ2000';
+        const LOGIN_RANGE = process.env.GOOGLE_SHEETS_LOGIN_RANGE || 'Mail!A1:B2000'; // Forcing A:B to ensure both columns are read
         const TOOLBOX_RANGE = process.env.GOOGLE_SHEETS_TOOLBOX_RANGE || "'Boite à Outil'!A1:ZZ2000";
         const EVENTS_RANGE = process.env.GOOGLE_SHEETS_EVENTS_RANGE || 'Events!A1:Z2000';
 
@@ -92,44 +92,31 @@ exports.handler = async (event, context) => {
             const header = mailValues[0].map(h => normalize(h));
             const rows = mailValues.slice(1);
 
-            // Always use column A for email and column B for password
-            const emailIdx = 0;  // Column A
-            const passwordIdx = 1;  // Column B
-            
-            console.log('Mail worksheet structure:', {
-                header,
-                firstRow: rows[0],
-                emailIdx,
-                passwordIdx,
-                totalColumns: mailValues[0].length
-            });
+            // Find email column: prefer headers containing 'mail' or 'email'
+            const emailIdx = header.findIndex(h => h.includes('mail') || h.includes('email'));
+            // Find password column: support 'mot de passe', 'motde passe', 'password', 'mdp'
+            const passwordIdx = header.findIndex(h => h.includes('mot de passe') || h.includes('motde passe') || h.includes('password') || h === 'mdp' || h.includes('motdepasse'));
 
             console.log('Detected columns:', { emailIdx, passwordIdx, headerRaw: mailValues[0] });
 
-            loginData = rows
-                .map((row, index) => {
-                    // Ensure we have both columns
-                    if (!Array.isArray(row) || row.length < 2) {
-                        console.log(`Row ${index + 2} missing data:`, row);
-                        return null;
-                    }
+            if (emailIdx === -1) {
+                console.error("Could not find a valid email column in 'Mail' sheet.");
+            } else {
+                loginData = rows
+                    .map((row, index) => {
+                        const email = (row[emailIdx] || '').toString().trim();
+                        // Only get password if the index was found
+                        const password = passwordIdx > -1 ? (row[passwordIdx] || '').toString().trim() : '';
 
-                    const email = (row[emailIdx] || '').toString().trim();
-                    const password = (row[passwordIdx] || '').toString().trim();
+                        if (index < 5) {
+                            console.log(`Row ${index + 2}:`, { email, passwordMasked: password ? '[HAS_PASSWORD]' : '[NO_PASSWORD]', rawRow: row });
+                        }
 
-                    if (index < 5) {
-                        console.log(`Row ${index + 2}:`, {
-                            email,
-                            passwordMasked: password ? '[HAS_PASSWORD]' : '[NO_PASSWORD]',
-                            rawRow: row,
-                            rowLength: row.length
-                        });
-                    }
-
-                    if (!email || !email.includes('@')) return null;
-                    return { email, password };
-                })
-                .filter(Boolean);
+                        if (!email || !email.includes('@')) return null;
+                        return { email, password };
+                    })
+                    .filter(Boolean);
+            }
         }
 
         // Keep backward compatibility for loginEmails
