@@ -88,39 +88,24 @@ exports.handler = async (event, context) => {
         const normalize = (s) => (s || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 
         let loginData = [];
-        if (mailValues.length > 1) { // Make sure we have header + data rows
+        if (mailValues.length > 0) {
             const header = mailValues[0].map(h => normalize(h));
-            const dataRows = mailValues.slice(1); // Skip header row
+            const rows = mailValues.slice(1);
 
-            // Find email column: prefer headers containing 'mail' or 'email', or default to column A (index 0)
-            let emailIdx = header.findIndex(h => h.includes('mail') || h.includes('email'));
-            if (emailIdx === -1) emailIdx = 0; // Default to column A
-            
-            // Find password column: support 'mot de passe', 'motde passe', 'password', 'mdp', or default to column B (index 1)
-            let passwordIdx = header.findIndex(h => h.includes('mot de passe') || h.includes('motde passe') || h.includes('password') || h === 'mdp' || h.includes('motdepasse'));
-            if (passwordIdx === -1) passwordIdx = 1; // Default to column B
+            // Find email column: prefer headers containing 'mail' or 'email'
+            const emailIdx = header.findIndex(h => h.includes('mail') || h.includes('email'));
+            // Find password column: support 'mot de passe', 'motde passe', 'password', 'mdp'
+            const passwordIdx = header.findIndex(h => h.includes('mot de passe') || h.includes('motde passe') || h.includes('password') || h === 'mdp' || h.includes('motdepasse'));
 
-            console.log('Detected columns:', { 
-                emailIdx, 
-                passwordIdx, 
-                headerRaw: mailValues[0],
-                emailHeader: mailValues[0][emailIdx],
-                passwordHeader: mailValues[0][passwordIdx],
-                totalRows: dataRows.length
-            });
+            console.log('Detected columns:', { emailIdx, passwordIdx, headerRaw: mailValues[0] });
 
-            loginData = dataRows
+            loginData = rows
                 .map((row, index) => {
                     const email = (row[emailIdx] || '').toString().trim();
                     const password = (row[passwordIdx] || '').toString().trim();
 
                     if (index < 5) {
-                        console.log(`Data Row ${index + 2} (sheet row ${index + 2}):`, { 
-                            email, 
-                            password: password ? `[${password.length} chars]` : '[NO_PASSWORD]',
-                            emailCol: row[emailIdx],
-                            passwordCol: row[passwordIdx]
-                        });
+                        console.log(`Row ${index + 2}:`, { email, passwordMasked: password ? '[HAS_PASSWORD]' : '[NO_PASSWORD]', rawRow: row });
                     }
 
                     if (!email || !email.includes('@')) return null;
