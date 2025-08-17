@@ -21,7 +21,7 @@ exports.handler = async (event, context) => {
         const SPREADSHEET_ID = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
         // Default ranges can be overridden via env
         const CAMPAIGNS_RANGE = process.env.GOOGLE_SHEETS_CAMPAIGNS_RANGE || process.env.GOOGLE_SHEETS_RANGE || 'Global1!A1:AC2000';
-        const LOGIN_RANGE = process.env.GOOGLE_SHEETS_LOGIN_RANGE || 'Mail!A1:B2000';
+        const LOGIN_RANGE = process.env.GOOGLE_SHEETS_LOGIN_RANGE || 'Mail!A1:ZZ2000';
         const TOOLBOX_RANGE = process.env.GOOGLE_SHEETS_TOOLBOX_RANGE || "'Boite à Outil'!A1:ZZ2000";
         const EVENTS_RANGE = process.env.GOOGLE_SHEETS_EVENTS_RANGE || 'Events!A1:Z2000';
 
@@ -82,27 +82,38 @@ exports.handler = async (event, context) => {
         const toolboxValues = data.valueRanges[2]?.values || [];
         const eventsValues = data.valueRanges[3]?.values || [];
 
-        // Process login data with emails and passwords from columns A and B
+        // Process login data with header-detected columns
         console.log('Mail worksheet raw data (first 5 rows):', mailValues.slice(0, 5));
-        
-        const loginData = mailValues
-            .map((row, index) => {
-                if (!Array.isArray(row) || !row[0]) return null;
-                const email = (row[0] || '').trim();
-                const password = (row[1] || '').trim(); // Column B for password
-                
-                // Debug log for first few rows
-                if (index < 5) {
-                    console.log(`Row ${index}: email="${email}", password="${password}", rawRow:`, row);
-                }
-                
-                if (!email || !email.includes('@')) return null;
-                return { email, password };
-            })
-            .filter(item => item !== null);
-            
-        console.log('Processed login data (first 3 items):', loginData.slice(0, 3));
-        
+
+        const normalize = (s) => (s || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+
+        let loginData = [];
+        if (mailValues.length > 0) {
+            const header = mailValues[0].map(h => normalize(h));
+            const rows = mailValues.slice(1);
+
+            // Find email column: prefer headers containing 'mail' or 'email'
+            const emailIdx = header.findIndex(h => h.includes('mail') || h.includes('email'));
+            // Find password column: support 'mot de passe', 'motde passe', 'password', 'mdp'
+            const passwordIdx = header.findIndex(h => h.includes('mot de passe') || h.includes('motde passe') || h.includes('password') || h === 'mdp' || h.includes('motdepasse'));
+
+            console.log('Detected columns:', { emailIdx, passwordIdx, headerRaw: mailValues[0] });
+
+            loginData = rows
+                .map((row, index) => {
+                    const email = (row[emailIdx] || '').toString().trim();
+                    const password = (row[passwordIdx] || '').toString().trim();
+
+                    if (index < 5) {
+                        console.log(`Row ${index + 2}:`, { email, passwordMasked: password ? '[HAS_PASSWORD]' : '[NO_PASSWORD]', rawRow: row });
+                    }
+
+                    if (!email || !email.includes('@')) return null;
+                    return { email, password };
+                })
+                .filter(Boolean);
+        }
+
         // Keep backward compatibility for loginEmails
         const loginEmails = loginData.map(item => item.email);
 
