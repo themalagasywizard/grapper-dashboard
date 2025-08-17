@@ -85,33 +85,48 @@ exports.handler = async (event, context) => {
         // Process login data with header-detected columns
         console.log('Mail worksheet raw data (first 5 rows):', mailValues.slice(0, 5));
 
-        const normalize = (s) => (s || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
-
         let loginData = [];
-        if (mailValues.length > 0) {
-            const header = mailValues[0].map(h => normalize(h));
-            const rows = mailValues.slice(1);
+        if (mailValues.length > 1) { // Make sure we have header and at least one data row
+            // First row is headers, we know email is column A (0) and password is column B (1)
+            const headers = mailValues[0];
+            const rows = mailValues.slice(1); // Skip header row
 
-            // Find email column: prefer headers containing 'mail' or 'email'
-            const emailIdx = header.findIndex(h => h.includes('mail') || h.includes('email'));
-            // Find password column: support 'mot de passe', 'motde passe', 'password', 'mdp'
-            const passwordIdx = header.findIndex(h => h.includes('mot de passe') || h.includes('motde passe') || h.includes('password') || h === 'mdp' || h.includes('motdepasse'));
+            // Fixed indices for Mail worksheet: Column A (0) for email, Column B (1) for password
+            const emailIdx = 0;
+            const passwordIdx = 1;
 
-            console.log('Detected columns:', { emailIdx, passwordIdx, headerRaw: mailValues[0] });
+            console.log('Processing Mail worksheet:', {
+                headers,
+                totalRows: rows.length,
+                emailColumn: headers[emailIdx],
+                passwordColumn: headers[passwordIdx]
+            });
 
             loginData = rows
                 .map((row, index) => {
+                    if (!Array.isArray(row)) return null;
+                    
                     const email = (row[emailIdx] || '').toString().trim();
                     const password = (row[passwordIdx] || '').toString().trim();
 
+                    // Debug log for first few rows
                     if (index < 5) {
-                        console.log(`Row ${index + 2}:`, { email, passwordMasked: password ? '[HAS_PASSWORD]' : '[NO_PASSWORD]', rawRow: row });
+                        console.log(`Row ${index + 1}:`, { 
+                            email, 
+                            hasPassword: !!password,
+                            rowData: row 
+                        });
                     }
 
                     if (!email || !email.includes('@')) return null;
                     return { email, password };
                 })
                 .filter(Boolean);
+
+            console.log('Processed login data:', {
+                totalUsers: loginData.length,
+                sampleEmails: loginData.slice(0, 3).map(d => d.email)
+            });
         }
 
         // Keep backward compatibility for loginEmails
