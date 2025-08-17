@@ -2140,11 +2140,21 @@ const Login = ({ onLogin, availableUsers, language, toggleLanguage, loading }) =
             return;
         }
         
+        // Debug logging for password validation
+        console.log('Password Debug:', {
+            userEmail: user.email,
+            userPassword: user.password,
+            enteredPassword: password,
+            hasPassword: !!(user.password && user.password.trim() !== '')
+        });
+        
         // Check password validation
-        if (user.password && user.password.trim() !== '' && password !== user.password) {
-            // User has a specific password set - must match
-            setError(t('invalidPassword'));
-            return;
+        if (user.password && user.password.trim() !== '') {
+            // User has a specific password set - must match exactly
+            if (password !== user.password) {
+                setError(t('invalidPassword'));
+                return;
+            }
         }
         // If user.password is empty or undefined, any password works (legacy behavior)
         
@@ -2310,11 +2320,19 @@ const App = () => {
 
             // Prefer dedicated Mail sheet login data with passwords if provided
             const loginData = googleSheetsService.getLoginData();
+            console.log('Login Data Debug:', {
+                loginDataLength: loginData?.length || 0,
+                loginDataSample: loginData?.slice(0, 3) || [],
+                hasLoginData: Array.isArray(loginData) && loginData.length > 0
+            });
+            
             if (Array.isArray(loginData) && loginData.length > 0) {
                 availableUsers = buildUsersFromLoginData(loginData, sheetData);
+                console.log('Built users from login data:', availableUsers.slice(0, 3));
             } else {
                 // Fallback to old email-only method
                 const loginEmails = googleSheetsService.getLoginEmails();
+                console.log('Fallback to login emails:', loginEmails?.slice(0, 3) || []);
                 if (Array.isArray(loginEmails) && loginEmails.length > 0) {
                     availableUsers = buildUsersFromLoginEmails(loginEmails, sheetData);
                 } else {
