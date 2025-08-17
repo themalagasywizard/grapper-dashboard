@@ -397,6 +397,9 @@ class GoogleSheetsService {
 // Create global instance
 const googleSheetsService = new GoogleSheetsService();
 
+// Helper function to normalize strings for comparison (removes accents, lowercase, trims)
+const normalizeString = (s) => (s || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+
 // Function to convert French date format (DD/MM/YYYY) to YYYY-MM-DD
 const convertFrenchDate = (frenchDate) => {
     if (!frenchDate || frenchDate.trim() === '') return null;
