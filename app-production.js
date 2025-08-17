@@ -2345,19 +2345,9 @@ const App = () => {
             // Always use Mail sheet data for login (contains passwords)
             const loginData = googleSheetsService.getLoginData();
             
-            // DEBUG: Add test data if no login data is received properly
-            let testLoginData = loginData;
-            if (!Array.isArray(loginData) || loginData.length === 0) {
-                console.log('No login data received, using test data');
-                testLoginData = [
-                    { email: 'marine@grapperagency.com', password: 'testpass123' },
-                    { email: 'other@example.com', password: '' }
-                ];
-            }
-            
             // Skip header row if present (first row of Mail worksheet)
-            const loginDataWithoutHeader = Array.isArray(testLoginData) && testLoginData.length > 0 
-                ? testLoginData[0].email === 'Mail' ? testLoginData.slice(1) : testLoginData
+            const loginDataWithoutHeader = Array.isArray(loginData) && loginData.length > 0 
+                ? loginData[0].email === 'Mail' ? loginData.slice(1) : loginData
                 : [];
             
             console.log('Login Data Debug:', {
