@@ -896,40 +896,42 @@ const NotificationsBell = ({ userEvents, language }) => {
             </button>
             
             {showNotifications && (
-                <div className="absolute right-0 top-12 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-                    <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-                        <h3 className="font-semibold text-gray-900">Notifications</h3>
-                        <button 
-                            onClick={clearNotifications}
-                            className="text-xs text-blue-600 hover:text-blue-800"
-                        >
-                            Clear all
-                        </button>
-                    </div>
-                    <div className="max-h-64 overflow-y-auto">
-                        {notifications.length === 0 ? (
-                            <div className="p-4 text-center text-gray-500 text-sm">
-                                No new notifications
-                            </div>
-                        ) : (
-                            notifications.map(notif => (
-                                <div key={notif.id} className="p-3 border-b border-gray-100 last:border-b-0">
-                                    <div className="flex items-start justify-between">
-                                        <div className="flex-1">
-                                            <p className="text-sm text-gray-900">{notif.message}</p>
-                                            <p className="text-xs text-gray-500 mt-1">{notif.time}</p>
-                                        </div>
-                                        <span className={`ml-2 px-2 py-1 text-xs rounded-full ${
-                                            notif.type === 'Preview' ? 'bg-orange-100 text-orange-800' :
-                                            notif.type === 'Post' ? 'bg-blue-100 text-blue-800' :
-                                            'bg-purple-100 text-purple-800'
-                                        }`}>
-                                            {notif.type}
-                                        </span>
-                                    </div>
+                <div className="fixed inset-0 top-16 sm:absolute sm:inset-auto sm:top-12 sm:right-0 w-full sm:w-80 p-4 sm:p-0 z-50">
+                    <div className="bg-white rounded-lg shadow-lg border border-gray-200 w-full">
+                        <div className="p-4 border-b border-gray-200 flex justify-between items-center">
+                            <h3 className="font-semibold text-gray-900">Notifications</h3>
+                            <button 
+                                onClick={clearNotifications}
+                                className="text-xs text-blue-600 hover:text-blue-800"
+                            >
+                                Clear all
+                            </button>
+                        </div>
+                        <div className="max-h-64 overflow-y-auto">
+                            {notifications.length === 0 ? (
+                                <div className="p-4 text-center text-gray-500 text-sm">
+                                    No new notifications
                                 </div>
-                            ))
-                        )}
+                            ) : (
+                                notifications.map(notif => (
+                                    <div key={notif.id} className="p-3 border-b border-gray-100 last:border-b-0">
+                                        <div className="flex items-start justify-between">
+                                            <div className="flex-1">
+                                                <p className="text-sm text-gray-900">{notif.message}</p>
+                                                <p className="text-xs text-gray-500 mt-1">{notif.time}</p>
+                                            </div>
+                                            <span className={`ml-2 px-2 py-1 text-xs rounded-full ${
+                                                notif.type === 'Preview' ? 'bg-orange-100 text-orange-800' :
+                                                notif.type === 'Post' ? 'bg-blue-100 text-blue-800' :
+                                                'bg-purple-100 text-purple-800'
+                                            }`}>
+                                                {notif.type}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
                     </div>
                 </div>
             )}
