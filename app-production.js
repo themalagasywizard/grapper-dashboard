@@ -2171,7 +2171,12 @@ const Login = ({ onLogin, availableUsers, language, toggleLanguage, loading }) =
             userEmail: user.email,
             hasPassword: hasSetPassword,
             passwordRequired: hasSetPassword,
-            isValidPassword: passwordMatches
+            isValidPassword: passwordMatches,
+            enteredLength: password.length,
+            storedLength: user.password ? user.password.length : 0,
+            enteredPassword: `"${password}"`,
+            storedPassword: `"${user.password || ''}"`,
+            exactMatch: password === user.password
         });
         
         // Check password validation
@@ -2344,16 +2349,6 @@ const App = () => {
 
             // Always use Mail sheet data for login (contains passwords)
             const loginData = googleSheetsService.getLoginData();
-            
-            // TEMPORARY: Manual password override until serverless function is fixed
-            if (Array.isArray(loginData)) {
-                loginData.forEach(item => {
-                    if (item.email === 'marine@grapperagency.com' && (!item.password || item.password.trim() === '')) {
-                        item.password = 'Mot de Passe'; // Replace with actual password from column B
-                        console.log('Applied manual password override for marine@grapperagency.com');
-                    }
-                });
-            }
             
             // Skip header row if present (first row of Mail worksheet)
             const loginDataWithoutHeader = Array.isArray(loginData) && loginData.length > 0 
