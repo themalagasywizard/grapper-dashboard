@@ -85,36 +85,41 @@ exports.handler = async (event, context) => {
         // Process login data with header-detected columns
         console.log('Mail worksheet raw data (first 5 rows):', mailValues.slice(0, 5));
 
+        const normalize = (s) => (s || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+
         let loginData = [];
-        if (mailValues.length > 1) { // Make sure we have header and at least one data row
-            // First row is headers, we know email is column A (0) and password is column B (1)
-            const headers = mailValues[0];
-            const rows = mailValues.slice(1); // Skip header row
+        if (mailValues.length > 1) { // Make sure we have header + data rows
+            const header = mailValues[0].map(h => normalize(h));
+            const dataRows = mailValues.slice(1); // Skip header row
 
-            // Fixed indices for Mail worksheet: Column A (0) for email, Column B (1) for password
-            const emailIdx = 0;
-            const passwordIdx = 1;
+            // Find email column: prefer headers containing 'mail' or 'email', or default to column A (index 0)
+            let emailIdx = header.findIndex(h => h.includes('mail') || h.includes('email'));
+            if (emailIdx === -1) emailIdx = 0; // Default to column A
+            
+            // Find password column: support 'mot de passe', 'motde passe', 'password', 'mdp', or default to column B (index 1)
+            let passwordIdx = header.findIndex(h => h.includes('mot de passe') || h.includes('motde passe') || h.includes('password') || h === 'mdp' || h.includes('motdepasse'));
+            if (passwordIdx === -1) passwordIdx = 1; // Default to column B
 
-            console.log('Processing Mail worksheet:', {
-                headers,
-                totalRows: rows.length,
-                emailColumn: headers[emailIdx],
-                passwordColumn: headers[passwordIdx]
+            console.log('Detected columns:', { 
+                emailIdx, 
+                passwordIdx, 
+                headerRaw: mailValues[0],
+                emailHeader: mailValues[0][emailIdx],
+                passwordHeader: mailValues[0][passwordIdx],
+                totalRows: dataRows.length
             });
 
-            loginData = rows
+            loginData = dataRows
                 .map((row, index) => {
-                    if (!Array.isArray(row)) return null;
-                    
                     const email = (row[emailIdx] || '').toString().trim();
                     const password = (row[passwordIdx] || '').toString().trim();
 
-                    // Debug log for first few rows
                     if (index < 5) {
-                        console.log(`Row ${index + 1}:`, { 
+                        console.log(`Data Row ${index + 2} (sheet row ${index + 2}):`, { 
                             email, 
-                            hasPassword: !!password,
-                            rowData: row 
+                            password: password ? `[${password.length} chars]` : '[NO_PASSWORD]',
+                            emailCol: row[emailIdx],
+                            passwordCol: row[passwordIdx]
                         });
                     }
 
@@ -122,11 +127,6 @@ exports.handler = async (event, context) => {
                     return { email, password };
                 })
                 .filter(Boolean);
-
-            console.log('Processed login data:', {
-                totalUsers: loginData.length,
-                sampleEmails: loginData.slice(0, 3).map(d => d.email)
-            });
         }
 
         // Keep backward compatibility for loginEmails
