@@ -2140,20 +2140,22 @@ const Login = ({ onLogin, availableUsers, language, toggleLanguage, loading }) =
             return;
         }
         
+        const hasSetPassword = !!(user.password && user.password.trim() !== '');
+        const passwordMatches = hasSetPassword ? password === user.password : true;
+        
         // Debug logging for password validation
         console.log('Password Debug:', {
             userEmail: user.email,
-            hasPassword: !!(user.password && user.password.trim() !== ''),
-            passwordMatch: user.password === password
+            hasPassword: hasSetPassword,
+            passwordRequired: hasSetPassword,
+            isValidPassword: passwordMatches
         });
         
         // Check password validation
-        if (user.password && user.password.trim() !== '') {
+        if (hasSetPassword && !passwordMatches) {
             // User has a specific password set in Mail worksheet column B
-            if (password !== user.password) {
-                setError(t('invalidPassword'));
-                return;
-            }
+            setError(t('invalidPassword'));
+            return;
         }
         // If no password is set in Mail worksheet column B, any password works
         
@@ -2319,16 +2321,25 @@ const App = () => {
 
             // Always use Mail sheet data for login (contains passwords)
             const loginData = googleSheetsService.getLoginData();
+            
+            // Skip header row if present (first row of Mail worksheet)
+            const loginDataWithoutHeader = Array.isArray(loginData) && loginData.length > 0 
+                ? loginData[0].email === 'Mail' ? loginData.slice(1) : loginData
+                : [];
+            
             console.log('Login Data Debug:', {
-                loginDataLength: loginData?.length || 0,
-                loginDataSample: loginData?.slice(0, 3) || [],
-                hasLoginData: Array.isArray(loginData) && loginData.length > 0
+                loginDataLength: loginDataWithoutHeader.length || 0,
+                loginDataSample: loginDataWithoutHeader.slice(0, 3) || [],
+                hasLoginData: Array.isArray(loginDataWithoutHeader) && loginDataWithoutHeader.length > 0
             });
             
             // Force use of login data with passwords, don't fall back
-            if (Array.isArray(loginData)) {
-                availableUsers = buildUsersFromLoginData(loginData, sheetData);
-                console.log('Built users from login data:', availableUsers.slice(0, 3));
+            if (Array.isArray(loginDataWithoutHeader) && loginDataWithoutHeader.length > 0) {
+                availableUsers = buildUsersFromLoginData(loginDataWithoutHeader, sheetData);
+                console.log('Built users from login data:', availableUsers.map(u => ({
+                    email: u.email,
+                    hasPassword: !!u.password
+                })).slice(0, 3));
             } else {
                 // Fallback to old email-only method
                 const loginEmails = googleSheetsService.getLoginEmails();
