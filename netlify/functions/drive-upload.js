@@ -1,4 +1,5 @@
 const { google } = require('googleapis');
+const { Readable } = require('stream');
 
 exports.handler = async (event) => {
   const headers = {
@@ -91,7 +92,7 @@ exports.handler = async (event) => {
       const folder = await ensureUserFolder(email);
       const media = {
         mimeType: mimeType || 'application/octet-stream',
-        body: Buffer.from(dataBase64, 'base64'),
+        body: Readable.from(Buffer.from(dataBase64, 'base64')),
       };
       
       console.log(`Attempting to upload file '${filename}' to folder ID '${folder.id}'...`);
