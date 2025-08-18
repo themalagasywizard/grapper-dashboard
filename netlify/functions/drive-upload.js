@@ -36,26 +36,37 @@ exports.handler = async (event) => {
     const drive = google.drive({ version: 'v3', auth: jwt });
 
     const ensureUserFolder = async (email) => {
-      // Find child folder under parent with name == email
+      // Normalize email for consistent folder naming
+      const folderName = email.toLowerCase().trim();
+
+      // Find child folder under parent with the normalized name
       const q = [
         `'${parentFolderId}' in parents`,
         "mimeType = 'application/vnd.google-apps.folder'",
-        `name = '${email.replace(/'/g, "\\'")}'`,
+        `name = '${folderName.replace(/'/g, "\\'")}'`,
         'trashed = false',
       ].join(' and ');
-      const listRes = await drive.files.list({ q, fields: 'files(id, name, webViewLink, webContentLink)' });
+      
+      console.log(`Searching for folder with query: ${q}`);
+      const listRes = await drive.files.list({ q, fields: 'files(id, name, webViewLink)' });
+
       if (listRes.data.files && listRes.data.files.length > 0) {
+        console.log(`Found existing folder for ${email}:`, listRes.data.files[0]);
         return listRes.data.files[0];
       }
+      
+      console.log(`No folder found for ${email}. Creating a new one...`);
       // Create if not found
       const createRes = await drive.files.create({
         requestBody: {
-          name: email,
+          name: folderName,
           mimeType: 'application/vnd.google-apps.folder',
           parents: [parentFolderId],
         },
-        fields: 'id, name, webViewLink, webContentLink',
+        fields: 'id, name, webViewLink',
       });
+      
+      console.log(`Created new folder for ${email}:`, createRes.data);
       return createRes.data;
     };
 
