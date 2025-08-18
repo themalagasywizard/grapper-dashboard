@@ -93,12 +93,29 @@ exports.handler = async (event) => {
         mimeType: mimeType || 'application/octet-stream',
         body: Buffer.from(dataBase64, 'base64'),
       };
-      const createRes = await drive.files.create({
-        requestBody: { name: filename, parents: [folder.id] },
-        media,
-        fields: 'id, name, webViewLink',
-      });
-      return { statusCode: 200, headers, body: JSON.stringify({ success: true, file: createRes.data, folderId: folder.id }) };
+      
+      console.log(`Attempting to upload file '${filename}' to folder ID '${folder.id}'...`);
+      
+      try {
+        const createRes = await drive.files.create({
+          requestBody: { name: filename, parents: [folder.id] },
+          media,
+          fields: 'id, name, webViewLink',
+        });
+        
+        console.log(`Successfully uploaded file:`, createRes.data);
+        return { statusCode: 200, headers, body: JSON.stringify({ success: true, file: createRes.data, folderId: folder.id }) };
+      } catch (uploadError) {
+        console.error('Google Drive API file upload error:', uploadError);
+        return { 
+          statusCode: 500, 
+          headers, 
+          body: JSON.stringify({ 
+            error: 'File upload to Google Drive failed.', 
+            details: uploadError.message 
+          }) 
+        };
+      }
     }
 
     return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method not allowed' }) };
