@@ -1,5 +1,11 @@
 const { useState, useEffect, useRef } = React;
 
+const formatUsername = (email) => {
+    if (!email) return '';
+    const name = email.split('@')[0];
+    return name.charAt(0).toUpperCase() + name.slice(1);
+};
+
 // Translation object with English and French
 const translations = {
     en: {
@@ -520,7 +526,7 @@ const buildUsersFromLoginData = (loginData, sheetData) => {
         const key = email.toLowerCase();
         if (seen.has(key)) return;
         seen.add(key);
-        const nameGuess = nameByEmail.get(key) || email.split('@')[0].replace(/[._-]+/g, ' ');
+const nameGuess = nameByEmail.get(key) || formatUsername(email);
         
         const user = { 
             email, 
@@ -973,7 +979,7 @@ const Navigation = ({ user, onLogout, currentTab, setCurrentTab, userCampaigns, 
                         </button>
                         
                         <div className="text-right hidden sm:block">
-                            <span className="text-gray-700 block">{t('welcome')}, {user.name}</span>
+                            <span className=\"text-gray-700 block\">{t('welcome')}, {formatUsername(user.name)}</span>
                             {lastUpdated && (
                                 <span className="text-xs text-gray-500">
                                     {t('lastUpdated')}: {new Date(lastUpdated).toLocaleTimeString()}
@@ -1666,7 +1672,7 @@ const Profile = ({ user, campaigns, language }) => {
                         <span className="text-white text-3xl font-bold">{user.name.split(' ').map(n => n[0]).join('')}</span>
                     </div>
                     <div className="flex-1">
-                        <h1 className="text-2xl font-bold text-gray-900">{user.name}</h1>
+                        <h1 className=\"text-2xl font-bold text-gray-900\">{formatUsername(user.name)}</h1>
                         <p className="text-gray-600 mb-2">{user.email}</p>
                         <p className="text-sm text-gray-500">{t('memberSince')} {new Date(user.joinDate).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
                         
