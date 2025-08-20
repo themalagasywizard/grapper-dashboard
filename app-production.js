@@ -1075,228 +1075,232 @@ const Dashboard = ({ campaigns, events = [], language }) => {
     
     useEffect(() => {
         if (calendarRef.current && !calendarInstance.current && window.FullCalendar) {
-            // Prepare all events for calendar
-            const today = new Date();
-            today.setHours(0, 0, 0, 0); // Set to start of today
-            
-            // All events for calendar view (including past events)
-            const allEvents = campaigns.map(campaign => {
-                const isCompleted = campaign.Status === 'Completed';
-                const backgroundColor = isCompleted ? '#22c55e' : '#6366f1'; // Green for completed, purple for upcoming
+            const renderTimeout = setTimeout(() => {
+                // Prepare all events for calendar
+                const today = new Date();
+                today.setHours(0, 0, 0, 0); // Set to start of today
                 
-                console.log(`Calendar Event: ${campaign.Brand_Name} - Status: "${campaign.Status}" - Color: ${backgroundColor}`);
-                
-                return {
-                    id: campaign.Campaign_ID,
-                    title: `${campaign.Brand_Name}`,
-                    date: campaign.Date, // This is the Date Fin
-                    extendedProps: {
-                        revenue: campaign.Revenue,
-                        talent: campaign.Talent,
-                        status: campaign.Status
-                    },
-                    backgroundColor: backgroundColor,
-                    borderColor: 'transparent',
-                    textColor: '#ffffff'
-                };
-            });
-
-            const isSmallScreen = window.matchMedia('(max-width: 640px)').matches;
-            calendarInstance.current = new FullCalendar.Calendar(calendarRef.current, {
-                // Show Calendar by default even on mobile, but allow switching to list
-                initialView: 'dayGridMonth',
-                headerToolbar: {
-                    left: 'prev,next today',
-                    center: 'title',
-                    right: 'dayGridMonth,upcomingList'
-                },
-                views: {
-                    upcomingList: {
-                        type: 'list',
-                        duration: { years: 2 },
-                        buttonText: 'Upcoming'
-                    }
-                },
-                buttonText: {
-                    dayGridMonth: 'Calendar',
-                    upcomingList: 'List'
-                },
-                dayMaxEventRows: isSmallScreen ? 2 : 3,
-                expandRows: true,
-                height: 'auto',
-                windowResize: function() {
-                    // Adjust button sizes for mobile each resize
-                    try {
-                        const isMobile = window.matchMedia('(max-width: 640px)').matches;
-                        const toolbar = calendarRef.current?.querySelector?.('.fc-toolbar');
-                        if (toolbar) {
-                            toolbar.style.fontSize = isMobile ? '12px' : '';
-                        }
-                        const buttons = calendarRef.current?.querySelectorAll?.('.fc-button');
-                        if (buttons && buttons.forEach) {
-                            buttons.forEach(btn => {
-                                btn.style.padding = isMobile ? '4px 6px' : '';
-                                btn.style.fontSize = isMobile ? '12px' : '';
-                                btn.style.lineHeight = isMobile ? '1.1' : '';
-                            });
-                        }
-                        const titleEl = calendarRef.current?.querySelector?.('.fc-toolbar-title');
-                        if (titleEl) {
-                            titleEl.style.fontSize = isMobile ? '16px' : '';
-                        }
-                    } catch (_) {}
-                },
-                events: function(fetchInfo, successCallback, failureCallback) {
-                    // Safely get current view type with fallback
-                    let currentView = 'upcomingList'; // Default to upcomingList
+                // All events for calendar view (including past events)
+                const allEvents = campaigns.map(campaign => {
+                    const isCompleted = campaign.Status === 'Completed';
+                    const backgroundColor = isCompleted ? '#22c55e' : '#6366f1'; // Green for completed, purple for upcoming
                     
-                    try {
-                        if (fetchInfo && fetchInfo.view && fetchInfo.view.type) {
-                            currentView = fetchInfo.view.type;
-                        } else if (calendarInstance.current && calendarInstance.current.view) {
-                            currentView = calendarInstance.current.view.type;
-                        }
-                    } catch (error) {
-                        console.log('View type detection fallback, using default:', currentView);
-                    }
+                    console.log(`Calendar Event: ${campaign.Brand_Name} - Status: \"${campaign.Status}\" - Color: ${backgroundColor}`);
                     
-                    if (currentView === 'upcomingList') {
-                        // For list view: only upcoming events from today onwards, sorted chronologically
-                        const upcomingEvents = (Array.isArray(events) ? events : [])
-                            .filter(event => new Date(event.date) >= today)
-                            .sort((a, b) => new Date(a.date) - new Date(b.date));
-                        console.log(`List view: Showing ${upcomingEvents.length} upcoming events`);
-                        successCallback(upcomingEvents);
-                    } else {
-                        // For calendar view (dayGridMonth): ALL events (past and future)
-                        const allProvided = Array.isArray(events) ? events : [];
-                        console.log(`Calendar view (${currentView}): Showing ${allProvided.length} total events (past and future)`);
-                        successCallback(allProvided);
-                    }
-                },
-                eventClick: function(info) {
-                    // Get event details from extendedProps
-                    const eventType = info.event.extendedProps?.actionType || 'Campaign';
-                    const brand = info.event.extendedProps?.brand || info.event.title;
-                    let status = info.event.extendedProps?.originalStatus || info.event.extendedProps?.status || 'N/A';
-                    
-                    // Transform "Facture a envoyer" to "Fait"
-                    if (status.toLowerCase().includes('facture') && status.toLowerCase().includes('envoyer')) {
-                        status = 'Fait';
-                    }
-                    
-                    // Prepare additional event data for Events from Events sheet
-                    const eventData = {
-                        timeDisplay: info.event.extendedProps?.timeDisplay,
-                        eventInfo: info.event.extendedProps?.eventInfo,
-                        startTime: info.event.extendedProps?.startTime,
-                        endTime: info.event.extendedProps?.endTime,
-                        address: info.event.extendedProps?.address
+                    return {
+                        id: campaign.Campaign_ID,
+                        title: `${campaign.Brand_Name}`,
+                        date: campaign.Date, // This is the Date Fin
+                        extendedProps: {
+                            revenue: campaign.Revenue,
+                            talent: campaign.Talent,
+                            status: campaign.Status
+                        },
+                        backgroundColor: backgroundColor,
+                        borderColor: 'transparent',
+                        textColor: '#ffffff'
                     };
-                    
-                    // Create and show popup modal
-                    showEventModal(eventType, brand, status, language, eventData);
-                },
-                height: 'auto',
-                eventDisplay: 'block',
-                listDayFormat: { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' },
-                listDaySideFormat: false,
-                noEventsContent: t('noCampaignsFound') || 'No upcoming campaigns',
-                viewDidMount: function(view) {
-                    // Refresh events when view changes
-                    if (calendarInstance.current) {
-                        calendarInstance.current.refetchEvents();
-                    }
-                },
-                eventDidMount: function(info) {
-                    // Apply smaller mobile sizing on first mount
-                    try {
-                        const isMobile = window.matchMedia('(max-width: 640px)').matches;
-                        const toolbar = calendarRef.current?.querySelector?.('.fc-toolbar');
-                        if (toolbar) {
-                            toolbar.style.fontSize = isMobile ? '12px' : '';
+                });
+
+                const isSmallScreen = window.matchMedia('(max-width: 640px)').matches;
+                calendarInstance.current = new FullCalendar.Calendar(calendarRef.current, {
+                    // Show Calendar by default even on mobile, but allow switching to list
+                    initialView: 'dayGridMonth',
+                    headerToolbar: {
+                        left: 'prev,next today',
+                        center: 'title',
+                        right: 'dayGridMonth,upcomingList'
+                    },
+                    views: {
+                        upcomingList: {
+                            type: 'list',
+                            duration: { years: 2 },
+                            buttonText: 'Upcoming'
                         }
-                        const buttons = calendarRef.current?.querySelectorAll?.('.fc-button');
-                        if (buttons && buttons.forEach) {
-                            buttons.forEach(btn => {
-                                btn.style.padding = isMobile ? '4px 6px' : '';
-                                btn.style.fontSize = isMobile ? '12px' : '';
-                                btn.style.lineHeight = isMobile ? '1.1' : '';
-                            });
-                        }
-                        const titleEl = calendarRef.current?.querySelector?.('.fc-toolbar-title');
-                        if (titleEl) {
-                            titleEl.style.fontSize = isMobile ? '16px' : '';
-                        }
-                    } catch (_) {}
-                    // Enforce colors so nothing overrides them, based on action type
-                    try {
-                        const type = (info.event.extendedProps && info.event.extendedProps.actionType) || '';
-                        const originalBg = info.event.backgroundColor;
-                        let enforcedBg = null;
-                        if (type === 'Preview') enforcedBg = '#f59e0b'; // orange
-                        else if (type === 'Post') enforcedBg = '#3b82f6'; // blue
-                        else if (type === 'Event') enforcedBg = '#8b5cf6'; // purple
-                        else if (originalBg) enforcedBg = originalBg;
+                    },
+                    buttonText: {
+                        dayGridMonth: 'Calendar',
+                        upcomingList: 'List'
+                    },
+                    dayMaxEventRows: isSmallScreen ? 2 : 3,
+                    expandRows: true,
+                    height: 'auto',
+                    windowResize: function() {
+                        // Adjust button sizes for mobile each resize
+                        try {
+                            const isMobile = window.matchMedia('(max-width: 640px)').matches;
+                            const toolbar = calendarRef.current?.querySelector?.('.fc-toolbar');
+                            if (toolbar) {
+                                toolbar.style.fontSize = isMobile ? '12px' : '';
+                            }
+                            const buttons = calendarRef.current?.querySelectorAll?.('.fc-button');
+                            if (buttons && buttons.forEach) {
+                                buttons.forEach(btn => {
+                                    btn.style.padding = isMobile ? '4px 6px' : '';
+                                    btn.style.fontSize = isMobile ? '12px' : '';
+                                    btn.style.lineHeight = isMobile ? '1.1' : '';
+                                });
+                            }
+                            const titleEl = calendarRef.current?.querySelector?.('.fc-toolbar-title');
+                            if (titleEl) {
+                                titleEl.style.fontSize = isMobile ? '16px' : '';
+                            }
+                        } catch (_) {}
+                    },
+                    events: function(fetchInfo, successCallback, failureCallback) {
+                        // Safely get current view type with fallback
+                        let currentView = 'upcomingList'; // Default to upcomingList
                         
+                        try {
+                            if (fetchInfo && fetchInfo.view && fetchInfo.view.type) {
+                                currentView = fetchInfo.view.type;
+                            } else if (calendarInstance.current && calendarInstance.current.view) {
+                                currentView = calendarInstance.current.view.type;
+                            }
+                        } catch (error) {
+                            console.log('View type detection fallback, using default:', currentView);
+                        }
                         
-                        if (enforcedBg) {
-                            // Completely override all background properties
-                            info.el.style.setProperty('background', enforcedBg, 'important');
-                            info.el.style.setProperty('background-color', enforcedBg, 'important');
-                            info.el.style.setProperty('background-image', 'none', 'important');
-                            info.el.style.setProperty('background-clip', 'padding-box', 'important');
-                            info.el.style.setProperty('border', 'none', 'important');
-                            info.el.style.setProperty('border-color', 'transparent', 'important');
-                            info.el.style.setProperty('color', '#ffffff', 'important');
+                        if (currentView === 'upcomingList') {
+                            // For list view: only upcoming events from today onwards, sorted chronologically
+                            const upcomingEvents = (Array.isArray(events) ? events : [])
+                                .filter(event => new Date(event.date) >= today)
+                                .sort((a, b) => new Date(a.date) - new Date(b.date));
+                            console.log(`List view: Showing ${upcomingEvents.length} upcoming events`);
+                            successCallback(upcomingEvents);
+                        } else {
+                            // For calendar view (dayGridMonth): ALL events (past and future)
+                            const allProvided = Array.isArray(events) ? events : [];
+                            console.log(`Calendar view (${currentView}): Showing ${allProvided.length} total events (past and future)`);
+                            successCallback(allProvided);
+                        }
+                    },
+                    eventClick: function(info) {
+                        // Get event details from extendedProps
+                        const eventType = info.event.extendedProps?.actionType || 'Campaign';
+                        const brand = info.event.extendedProps?.brand || info.event.title;
+                        let status = info.event.extendedProps?.originalStatus || info.event.extendedProps?.status || 'N/A';
+                        
+                        // Transform \"Facture a envoyer\" to \"Fait\"
+                        if (status.toLowerCase().includes('facture') && status.toLowerCase().includes('envoyer')) {
+                            status = 'Fait';
+                        }
+                        
+                        // Prepare additional event data for Events from Events sheet
+                        const eventData = {
+                            timeDisplay: info.event.extendedProps?.timeDisplay,
+                            eventInfo: info.event.extendedProps?.eventInfo,
+                            startTime: info.event.extendedProps?.startTime,
+                            endTime: info.event.extendedProps?.endTime,
+                            address: info.event.extendedProps?.address
+                        };
+                        
+                        // Create and show popup modal
+                        showEventModal(eventType, brand, status, language, eventData);
+                    },
+                    height: 'auto',
+                    eventDisplay: 'block',
+                    listDayFormat: { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' },
+                    listDaySideFormat: false,
+                    noEventsContent: t('noCampaignsFound') || 'No upcoming campaigns',
+                    viewDidMount: function(view) {
+                        // Refresh events when view changes
+                        if (calendarInstance.current) {
+                            calendarInstance.current.refetchEvents();
+                        }
+                    },
+                    eventDidMount: function(info) {
+                        // Apply smaller mobile sizing on first mount
+                        try {
+                            const isMobile = window.matchMedia('(max-width: 640px)').matches;
+                            const toolbar = calendarRef.current?.querySelector?.('.fc-toolbar');
+                            if (toolbar) {
+                                toolbar.style.fontSize = isMobile ? '12px' : '';
+                            }
+                            const buttons = calendarRef.current?.querySelectorAll?.('.fc-button');
+                            if (buttons && buttons.forEach) {
+                                buttons.forEach(btn => {
+                                    btn.style.padding = isMobile ? '4px 6px' : '';
+                                    btn.style.fontSize = isMobile ? '12px' : '';
+                                    btn.style.lineHeight = isMobile ? '1.1' : '';
+                                });
+                            }
+                            const titleEl = calendarRef.current?.querySelector?.('.fc-toolbar-title');
+                            if (titleEl) {
+                                titleEl.style.fontSize = isMobile ? '16px' : '';
+                            }
+                        } catch (_) {}
+                        // Enforce colors so nothing overrides them, based on action type
+                        try {
+                            const type = (info.event.extendedProps && info.event.extendedProps.actionType) || '';
+                            const originalBg = info.event.backgroundColor;
+                            let enforcedBg = null;
+                            if (type === 'Preview') enforcedBg = '#f59e0b'; // orange
+                            else if (type === 'Post') enforcedBg = '#3b82f6'; // blue
+                            else if (type === 'Event') enforcedBg = '#8b5cf6'; // purple
+                            else if (originalBg) enforcedBg = originalBg;
                             
-                            // Target all possible child elements
-                            const childSelectors = [
-                                '.fc-event-main', 
-                                '.fc-list-event-title', 
-                                '.fc-event-title',
-                                '.fc-event-main-frame',
-                                '.fc-daygrid-event-dot',
-                                '.fc-event-time',
-                                '.fc-event-title-container'
-                            ];
                             
-                            childSelectors.forEach(selector => {
-                                const child = info.el.querySelector(selector);
-                                if (child) {
+                            if (enforcedBg) {
+                                // Completely override all background properties
+                                info.el.style.setProperty('background', enforcedBg, 'important');
+                                info.el.style.setProperty('background-color', enforcedBg, 'important');
+                                info.el.style.setProperty('background-image', 'none', 'important');
+                                info.el.style.setProperty('background-clip', 'padding-box', 'important');
+                                info.el.style.setProperty('border', 'none', 'important');
+                                info.el.style.setProperty('border-color', 'transparent', 'important');
+                                info.el.style.setProperty('color', '#ffffff', 'important');
+                                
+                                // Target all possible child elements
+                                const childSelectors = [
+                                    '.fc-event-main', 
+                                    '.fc-list-event-title', 
+                                    '.fc-event-title',
+                                    '.fc-event-main-frame',
+                                    '.fc-daygrid-event-dot',
+                                    '.fc-event-time',
+                                    '.fc-event-title-container'
+                                ];
+                                
+                                childSelectors.forEach(selector => {
+                                    const child = info.el.querySelector(selector);
+                                    if (child) {
+                                        child.style.setProperty('background', enforcedBg, 'important');
+                                        child.style.setProperty('background-color', enforcedBg, 'important');
+                                        child.style.setProperty('background-image', 'none', 'important');
+                                        child.style.setProperty('color', '#ffffff', 'important');
+                                    }
+                                });
+                                
+                                // Also apply to all direct children
+                                Array.from(info.el.children).forEach(child => {
                                     child.style.setProperty('background', enforcedBg, 'important');
                                     child.style.setProperty('background-color', enforcedBg, 'important');
                                     child.style.setProperty('background-image', 'none', 'important');
                                     child.style.setProperty('color', '#ffffff', 'important');
-                                }
-                            });
-                            
-                            // Also apply to all direct children
-                            Array.from(info.el.children).forEach(child => {
-                                child.style.setProperty('background', enforcedBg, 'important');
-                                child.style.setProperty('background-color', enforcedBg, 'important');
-                                child.style.setProperty('background-image', 'none', 'important');
-                                child.style.setProperty('color', '#ffffff', 'important');
-                            });
-                        }
-                    } catch (_) {}
+                                });
+                            }
+                        } catch (_) {}
 
-                    // Add revenue information to list view events
-                    if (info.view.type === 'upcomingList' || info.view.type.includes('list')) {
-                        const campaign = campaigns.find(c => c.Campaign_ID === info.event.id);
-                        if (campaign) {
-                            const titleElement = info.el.querySelector('.fc-list-event-title') || info.el.querySelector('.fc-event-title');
-                            if (titleElement) {
-                                titleElement.innerHTML = 
-                                    `<strong>${campaign.Brand_Name}</strong><br/>
-                                    <small style="color: #6b7280;">€${campaign.Revenue.toLocaleString()} • ${campaign.Status}</small>`;
+                        // Add revenue information to list view events
+                        if (info.view.type === 'upcomingList' || info.view.type.includes('list')) {
+                            const campaign = campaigns.find(c => c.Campaign_ID === info.event.id);
+                            if (campaign) {
+                                const titleElement = info.el.querySelector('.fc-list-event-title') || info.el.querySelector('.fc-event-title');
+                                if (titleElement) {
+                                    titleElement.innerHTML = 
+                                        `<strong>${campaign.Brand_Name}</strong><br/>
+                                        <small style=\"color: #6b7280;\">€${campaign.Revenue.toLocaleString()} • ${campaign.Status}</small>`;
+                                }
                             }
                         }
                     }
-                }
-            });
-            
-            calendarInstance.current.render();
+                });
+                
+                calendarInstance.current.render();
+            }, 100);
+
+            return () => clearTimeout(renderTimeout);
         }
         
         return () => {

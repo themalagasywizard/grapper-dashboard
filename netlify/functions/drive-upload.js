@@ -31,7 +31,8 @@ exports.handler = async (event) => {
       clientEmail,
       null,
       privateKey,
-      ['https://www.googleapis.com/auth/drive.file']
+      ['https://www.googleapis.com/auth/drive'],
+      process.env.GOOGLE_DRIVE_IMPERSONATED_USER_EMAIL // Impersonate this user
     );
     await jwt.authorize();
     const drive = google.drive({ version: 'v3', auth: jwt });
