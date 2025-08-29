@@ -1855,7 +1855,7 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
         invoiceWindow.document.write(`
             <html>
             <head>
-                <title>Facture ${invoiceData.invoiceNumber}</title>
+                <title>${invoiceData.invoiceNumber} - ${userName}</title>
                 <style>
                     @media screen {
                         body {
@@ -1907,11 +1907,15 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                     .user-details { flex: 1; text-align: left; }
                     .agency-details { flex: 1; text-align: left; margin-left: 40px; }
                     .invoice-meta {
-                        text-align: center;
+                        text-align: left;
                         margin: 20px 0;
                         padding: 15px;
                         background: #f8f9fa;
                         border-radius: 5px;
+                        position: absolute;
+                        left: 20mm;
+                        top: 110mm;
+                        width: 80mm;
                     }
                     .invoice-table {
                         width: 100%;
@@ -1990,6 +1994,13 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                 </div>
 
                 <div class="invoice-container">
+                    <!-- Invoice Title -->
+                    <div style="text-align: center; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 5px;">
+                        <h1 style="margin: 0; font-size: 24px; font-weight: bold; color: #333;">
+                            ${invoiceData.invoiceNumber} - ${userName}
+                        </h1>
+                    </div>
+
                     <!-- Header Section -->
                     <div class="header-section">
                         <div class="user-details">
@@ -2286,24 +2297,10 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                     >
                         📄 Générer la Facture (PDF)
                     </button>
-                    <button
-                        type="button"
-                        onClick={() => window.open('', '_blank')}
-                        className="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors"
-                    >
-                        👁️ Aperçu
-                    </button>
                 </div>
             </div>
 
-            {/* Preview Section (can be expanded) */}
-            <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Aperçu de la facture</h3>
-                <div className="text-center text-gray-500 py-8">
-                    <p>L'aperçu sera disponible après avoir configuré tous les champs requis.</p>
-                    <p className="text-sm mt-2">Cliquez sur "Générer la Facture" pour créer le PDF.</p>
-                </div>
-            </div>
+
         </div>
     );
 };
