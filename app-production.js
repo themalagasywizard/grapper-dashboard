@@ -1868,6 +1868,29 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                             margin: 0 auto;
                             background: white;
                         }
+                        @media (max-width: 768px) {
+                            body {
+                                padding: 10px;
+                                font-size: 14px;
+                            }
+                            .invoice-container {
+                                padding: 15mm;
+                            }
+                            .header-section {
+                                flex-direction: column;
+                                align-items: flex-start;
+                            }
+                            .agency-details {
+                                margin-left: 0;
+                                margin-top: 20px;
+                            }
+                            .invoice-table {
+                                font-size: 11px;
+                            }
+                            .invoice-table th, .invoice-table td {
+                                padding: 6px 4px;
+                            }
+                        }
                         .no-print { display: block; }
                         .button-container {
                             position: fixed;
@@ -1878,12 +1901,31 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                             z-index: 1000;
                         }
                         .action-button {
-                            padding: 10px 20px;
+                            padding: 12px 24px;
                             border: none;
                             border-radius: 5px;
                             cursor: pointer;
                             font-weight: bold;
                             transition: opacity 0.2s;
+                            font-size: 14px;
+                            min-width: 120px;
+                        }
+                        @media (max-width: 768px) {
+                            .action-button {
+                                padding: 16px 28px;
+                                font-size: 16px;
+                                min-width: 140px;
+                                margin: 0 8px;
+                            }
+                            .button-container {
+                                flex-direction: column;
+                                gap: 12px;
+                                align-items: center;
+                            }
+                            .save-pdf, .print {
+                                width: 100%;
+                                max-width: 200px;
+                            }
                         }
                         .action-button:hover { opacity: 0.9; }
                         .save-pdf { background-color: #2563eb; color: white; }
@@ -1906,8 +1948,17 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                         margin-bottom: 30px;
                         align-items: flex-start;
                     }
-                    .user-details { flex: 1; text-align: left; }
-                    .agency-details { flex: 1; text-align: left; margin-left: 40px; }
+                    .user-details {
+                        flex: 1;
+                        text-align: left;
+                        margin-top: -10px;
+                    }
+                    .agency-details {
+                        flex: 1;
+                        text-align: left;
+                        margin-left: 40px;
+                        margin-top: 15px;
+                    }
                     .invoice-meta {
                         text-align: left;
                         margin: 20px 0;
@@ -2000,7 +2051,7 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                             ${userBillingData?.tva ? `TVA: ${userBillingData.tva}<br/>` : ''}
                         </div>
                         <div class="agency-details">
-                            ${agencyBillingData.map(line => `<div>${line}</div>`).join('')}
+                            ${agencyBillingData.slice(0, 5).map(line => `<div>${line}</div>`).join('')}
                         </div>
                     </div>
 
