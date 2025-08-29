@@ -132,12 +132,13 @@ exports.handler = async (event, context) => {
             const rows = userBillingValues.slice(1); // Skip header row
             userBillingData = rows.map(row => ({
                 email: (row[0] || '').toString().trim(),
-                fullName: (row[1] || '').toString().trim(),
-                companyName: (row[2] || '').toString().trim(),
-                address: (row[3] || '').toString().trim(),
-                postalCode: (row[4] || '').toString().trim(),
-                city: (row[5] || '').toString().trim(),
-                country: (row[6] || '').toString().trim()
+                prenom: (row[1] || '').toString().trim(), // Prénom (first name)
+                nom: (row[2] || '').toString().trim(), // Nom (last name)
+                companyName: (row[3] || '').toString().trim(),
+                address: (row[4] || '').toString().trim(),
+                postalCode: (row[5] || '').toString().trim(),
+                city: (row[6] || '').toString().trim(),
+                country: (row[7] || '').toString().trim()
             })).filter(user => user.email && user.email.includes('@'));
         }
 

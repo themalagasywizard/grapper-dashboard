@@ -1848,7 +1848,9 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
         }
 
         const invoiceWindow = window.open('', '_blank');
-        const userName = userBillingData?.fullName || userBillingData?.companyName || user.name;
+        const userName = userBillingData?.prenom && userBillingData?.nom
+            ? `${userBillingData.prenom} ${userBillingData.nom}`
+            : userBillingData?.companyName || user.name;
         const userAddress = userBillingData?.address || '';
         const userLocation = userBillingData ? `${userBillingData.postalCode} ${userBillingData.city} ${userBillingData.country}` : '';
 
@@ -1912,10 +1914,7 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                         padding: 15px;
                         background: #f8f9fa;
                         border-radius: 5px;
-                        position: absolute;
-                        left: 20mm;
-                        top: 110mm;
-                        width: 80mm;
+                        width: fit-content;
                     }
                     .invoice-table {
                         width: 100%;
@@ -2005,8 +2004,8 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                     <div class="header-section">
                         <div class="user-details">
                             <strong>${userName}</strong><br/>
-                            ${userAddress}<br/>
-                            ${userLocation}<br/>
+                            ${userBillingData?.address || ''}<br/>
+                            ${userBillingData ? `${userBillingData.postalCode} ${userBillingData.city} ${userBillingData.country}` : ''}<br/>
                             ${userBillingData?.siret ? `SIRET: ${userBillingData.siret}<br/>` : ''}
                             ${userBillingData?.tva ? `TVA: ${userBillingData.tva}<br/>` : ''}
                         </div>
@@ -2107,7 +2106,7 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                     <div className="mb-6 p-4 bg-blue-50 rounded-lg">
                         <h3 className="font-semibold text-blue-900 mb-2">Informations de facturation (chargées depuis la base de données)</h3>
                         <div className="text-sm text-blue-800">
-                            <div><strong>Nom:</strong> {userBillingData.fullName || userBillingData.companyName || 'Non spécifié'}</div>
+                            <div><strong>Nom:</strong> {userBillingData.prenom && userBillingData.nom ? `${userBillingData.prenom} ${userBillingData.nom}` : userBillingData.companyName || 'Non spécifié'}</div>
                             <div><strong>Adresse:</strong> {userBillingData.address || 'Non spécifiée'}</div>
                             <div><strong>Localisation:</strong> {userBillingData.postalCode} {userBillingData.city}, {userBillingData.country}</div>
                             {userBillingData.siret && <div><strong>SIRET:</strong> {userBillingData.siret}</div>}
