@@ -2160,12 +2160,6 @@ const Login = ({ onLogin, availableUsers, language, toggleLanguage, loading }) =
         // Clean up passwords by removing all whitespace and normalizing
         const cleanPassword = (pwd) => {
             const cleaned = (pwd || '').trim();
-
-                original: pwd,
-                cleaned: cleaned,
-                length: cleaned.length,
-                charCodes: Array.from(cleaned).map(c => c.charCodeAt(0))
-            });
             return cleaned;
         };
         
