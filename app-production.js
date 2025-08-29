@@ -1773,7 +1773,7 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
         items: [{
             description: 'Campaign Collaboration Services',
             quantity: 1,
-            unitPrice: campaigns.reduce((sum, c) => sum + c.Revenue, 0) || 0
+            unitPrice: 0
         }]
     });
 
@@ -2217,7 +2217,7 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed"
                             title="La date est automatiquement définie à aujourd'hui"
                         />
-                        <p className="text-xs text-gray-500 mt-1">Date automatiquement définie à aujourd'hui</p>
+
                     </div>
                 </div>
 
