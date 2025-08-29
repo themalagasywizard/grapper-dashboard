@@ -1730,35 +1730,150 @@ const Profile = ({ user, campaigns, language }) => {
 // Invoice Generator Component
 const InvoiceGenerator = ({ user, campaigns, language }) => {
     const { t } = useTranslation(language);
+
+    // TVA Regimes with their rates and legal mentions
+    const tvaRegimes = [
+        {
+            id: 'franchise',
+            name: 'Franchise en base (art. 293 B CGI)',
+            rate: 0,
+            legalMention: 'TVA non applicable, art. 293 B du CGI'
+        },
+        {
+            id: 'france20',
+            name: 'Assujetti TVA France 20%',
+            rate: 20,
+            legalMention: 'TVA au taux normal 20%'
+        },
+        {
+            id: 'intraUe',
+            name: 'B2B intra-UE (autoliquidation)',
+            rate: 0,
+            legalMention: 'Autoliquidation/Reverse charge – art. 196 Directive 2006/112/CE'
+        },
+        {
+            id: 'export',
+            name: 'Export hors UE (0% TVA)',
+            rate: 0,
+            legalMention: 'Prestations de services hors champ de la TVA de l\'UE'
+        },
+        {
+            id: 'b2cUe',
+            name: 'B2C UE (TVA FR 20%)',
+            rate: 20,
+            legalMention: 'TVA française 20% appliquée (B2C UE)'
+        }
+    ];
+
     const [invoiceData, setInvoiceData] = useState({
-        invoiceNumber: 'INV-' + Date.now().toString().slice(-6),
+        invoiceNumber: 'F' + Date.now().toString().slice(-6),
         date: new Date().toISOString().split('T')[0],
-        amount: campaigns.reduce((sum, c) => sum + c.Revenue, 0).toFixed(2),
-        description: t('invoiceDescription') || 'Campaign Collaboration Services',
-        agentName: t('agentName') || 'Grapper Agency',
-        agentAddress: t('agentAddress') || '123 Agency Street, Paris, France'
+        selectedRegime: 'france20',
+        confirmationChecked: false,
+        items: [{
+            description: 'Campaign Collaboration Services',
+            quantity: 1,
+            unitPrice: campaigns.reduce((sum, c) => sum + c.Revenue, 0) || 0
+        }]
     });
 
-    const handleChange = (e) => {
+    const [userBillingData, setUserBillingData] = useState(null);
+    const [agencyBillingData, setAgencyBillingData] = useState([]);
+
+    // Load billing data on component mount
+    React.useEffect(() => {
+        const loadBillingData = async () => {
+            try {
+                const response = await fetch('/.netlify/functions/google-sheets');
+                const data = await response.json();
+                if (data.success) {
+                    // Find user billing data by email
+                    const userBilling = data.userBillingData?.find(u =>
+                        u.email.toLowerCase() === user.email.toLowerCase()
+                    );
+                    setUserBillingData(userBilling || null);
+                    setAgencyBillingData(data.agencyBillingData || []);
+                }
+            } catch (error) {
+                console.error('Error loading billing data:', error);
+            }
+        };
+        loadBillingData();
+    }, [user.email]);
+
+    const handleInvoiceChange = (e) => {
         setInvoiceData({ ...invoiceData, [e.target.name]: e.target.value });
     };
 
+    const handleRegimeChange = (e) => {
+        setInvoiceData({ ...invoiceData, selectedRegime: e.target.value });
+    };
+
+    const handleItemChange = (index, field, value) => {
+        const newItems = [...invoiceData.items];
+        newItems[index][field] = value;
+        setInvoiceData({ ...invoiceData, items: newItems });
+    };
+
+    const addItem = () => {
+        setInvoiceData({
+            ...invoiceData,
+            items: [...invoiceData.items, {
+                description: '',
+                quantity: 1,
+                unitPrice: 0
+            }]
+        });
+    };
+
+    const removeItem = (index) => {
+        if (invoiceData.items.length > 1) {
+            const newItems = invoiceData.items.filter((_, i) => i !== index);
+            setInvoiceData({ ...invoiceData, items: newItems });
+        }
+    };
+
+    // Calculate totals
+    const selectedRegime = tvaRegimes.find(r => r.id === invoiceData.selectedRegime);
+    const subtotal = invoiceData.items.reduce((sum, item) =>
+        sum + (parseFloat(item.unitPrice || 0) * parseInt(item.quantity || 1))
+    , 0);
+    const tvaAmount = (subtotal * (selectedRegime?.rate || 0)) / 100;
+    const totalTTC = subtotal + tvaAmount;
+
     const generateInvoice = () => {
+        if (!invoiceData.confirmationChecked) {
+            alert('Please confirm that the tax information is accurate before generating the invoice.');
+            return;
+        }
+
         const invoiceWindow = window.open('', '_blank');
+        const userName = userBillingData?.fullName || userBillingData?.companyName || user.name;
+        const userAddress = userBillingData?.address || '';
+        const userLocation = userBillingData ? `${userBillingData.postalCode} ${userBillingData.city} ${userBillingData.country}` : '';
+
         invoiceWindow.document.write(`
             <html>
             <head>
-                <title>Invoice ${invoiceData.invoiceNumber}</title>
+                <title>Facture ${invoiceData.invoiceNumber}</title>
                 <style>
                     @media screen {
-                        body { font-family: Arial, sans-serif; margin: 2cm; }
+                        body {
+                            font-family: 'Arial', sans-serif;
+                            margin: 0;
+                            padding: 20px;
+                            max-width: 210mm;
+                            margin: 0 auto;
+                            background: white;
+                        }
                         .no-print { display: block; }
-                        .button-container { 
+                        .button-container {
                             position: fixed;
                             top: 20px;
                             right: 20px;
                             display: flex;
                             gap: 10px;
+                            z-index: 1000;
                         }
                         .action-button {
                             padding: 10px 20px;
@@ -1768,34 +1883,99 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                             font-weight: bold;
                             transition: opacity 0.2s;
                         }
-                        .action-button:hover {
-                            opacity: 0.9;
-                        }
-                        .save-pdf {
-                            background-color: #2563eb;
-                            color: white;
-                        }
-                        .print {
-                            background-color: #059669;
-                            color: white;
-                        }
+                        .action-button:hover { opacity: 0.9; }
+                        .save-pdf { background-color: #2563eb; color: white; }
+                        .print { background-color: #059669; color: white; }
                     }
                     @media print {
+                        body { margin: 0; padding: 0; }
                         .no-print { display: none; }
-                        body { margin: 0; padding: 20px; }
+                        .page-break { page-break-before: always; }
                     }
-                    .header { text-align: center; margin-bottom: 2cm; }
-                    .details { margin-bottom: 1cm; }
-                    .table { width: 100%; border-collapse: collapse; margin-bottom: 1cm; }
-                    .table th, .table td { border: 1px solid #ddd; padding: 8px; }
-                    .total { text-align: right; font-weight: bold; margin-bottom: 1cm; }
-                    .footer { text-align: center; color: #666; font-size: 0.9em; }
+                    .invoice-container {
+                        max-width: 210mm;
+                        margin: 0 auto;
+                        padding: 20mm;
+                        box-sizing: border-box;
+                    }
+                    .header-section {
+                        display: flex;
+                        justify-content: space-between;
+                        margin-bottom: 30px;
+                        align-items: flex-start;
+                    }
+                    .user-details { flex: 1; text-align: left; }
+                    .agency-details { flex: 1; text-align: left; margin-left: 40px; }
+                    .invoice-meta {
+                        text-align: center;
+                        margin: 20px 0;
+                        padding: 15px;
+                        background: #f8f9fa;
+                        border-radius: 5px;
+                    }
+                    .invoice-table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        margin: 20px 0;
+                        font-size: 12px;
+                    }
+                    .invoice-table th, .invoice-table td {
+                        border: 1px solid #ddd;
+                        padding: 8px;
+                        text-align: left;
+                    }
+                    .invoice-table th { background-color: #f8f9fa; font-weight: bold; }
+                    .text-right { text-align: right; }
+                    .text-center { text-align: center; }
+                    .totals-section {
+                        margin-left: auto;
+                        width: 200px;
+                        margin-top: 20px;
+                    }
+                    .total-row {
+                        display: flex;
+                        justify-content: space-between;
+                        padding: 5px 0;
+                        border-bottom: 1px solid #eee;
+                    }
+                    .total-row.final { border-bottom: 2px solid #333; font-weight: bold; }
+                    .legal-mention {
+                        margin: 20px 0;
+                        padding: 15px;
+                        background: #fff3cd;
+                        border: 1px solid #ffeaa7;
+                        border-radius: 5px;
+                        font-size: 11px;
+                    }
+                    .disclaimers {
+                        margin-top: 30px;
+                        font-size: 10px;
+                        line-height: 1.4;
+                        color: #666;
+                    }
+                    .banking-details {
+                        position: absolute;
+                        bottom: 20mm;
+                        right: 20mm;
+                        width: 80mm;
+                        padding: 10px;
+                        background: #f8f9fa;
+                        border: 1px solid #ddd;
+                        border-radius: 5px;
+                        font-size: 10px;
+                    }
+                    .regime-selector {
+                        margin: 20px 0;
+                        padding: 15px;
+                        background: #e9ecef;
+                        border-radius: 5px;
+                    }
                 </style>
                 <script>
                     function printInvoice() {
                         window.print();
                     }
-                    
+
                     function savePDF() {
                         document.querySelector('.button-container').style.display = 'none';
                         window.print();
@@ -1808,35 +1988,96 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                     <button onclick="savePDF()" class="action-button save-pdf">💾 Save as PDF</button>
                     <button onclick="printInvoice()" class="action-button print">🖨️ Print</button>
                 </div>
-                
-                <div class="header">
-                    <h1>Invoice</h1>
-                    <p>From: ${user.name} (${user.email})</p>
-                    <p>To: ${invoiceData.agentName}</p>
-                    <p>Address: ${invoiceData.agentAddress}</p>
+
+                <div class="invoice-container">
+                    <!-- Header Section -->
+                    <div class="header-section">
+                        <div class="user-details">
+                            <strong>${userName}</strong><br/>
+                            ${userAddress}<br/>
+                            ${userLocation}<br/>
+                            ${userBillingData?.siret ? `SIRET: ${userBillingData.siret}<br/>` : ''}
+                            ${userBillingData?.tva ? `TVA: ${userBillingData.tva}<br/>` : ''}
+                        </div>
+                        <div class="agency-details">
+                            ${agencyBillingData.map(line => `<div>${line}</div>`).join('')}
+                        </div>
+                    </div>
+
+                    <!-- Invoice Metadata -->
+                    <div class="invoice-meta">
+                        <strong>Date de facturation:</strong> ${invoiceData.date}<br/>
+                        <strong>Numéro de la facture:</strong> ${invoiceData.invoiceNumber}<br/>
+                        <strong>Conditions de paiement:</strong> 30 jours
+                    </div>
+
+                    <!-- Invoice Table -->
+                    <table class="invoice-table">
+                        <thead>
+                            <tr>
+                                <th>Description</th>
+                                <th class="text-center">Quantité</th>
+                                <th class="text-right">Prix unitaire HT</th>
+                                <th class="text-center">% TVA</th>
+                                <th class="text-right">Total TVA</th>
+                                <th class="text-right">Total TTC</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${invoiceData.items.map(item => `
+                                <tr>
+                                    <td>${item.description}</td>
+                                    <td class="text-center">${item.quantity}</td>
+                                    <td class="text-right">${parseFloat(item.unitPrice || 0).toFixed(2)} €</td>
+                                    <td class="text-center">${selectedRegime?.rate || 0}%</td>
+                                    <td class="text-right">${((parseFloat(item.unitPrice || 0) * parseInt(item.quantity || 1)) * (selectedRegime?.rate || 0) / 100).toFixed(2)} €</td>
+                                    <td class="text-right">${((parseFloat(item.unitPrice || 0) * parseInt(item.quantity || 1)) * (1 + (selectedRegime?.rate || 0) / 100)).toFixed(2)} €</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+
+                    <!-- Totals Section -->
+                    <div class="totals-section">
+                        <div class="total-row">
+                            <span>Total HT:</span>
+                            <span>${subtotal.toFixed(2)} €</span>
+                        </div>
+                        <div class="total-row">
+                            <span>Total TVA:</span>
+                            <span>${tvaAmount.toFixed(2)} €</span>
+                        </div>
+                        <div class="total-row final">
+                            <span>Total TTC:</span>
+                            <span>${totalTTC.toFixed(2)} €</span>
+                        </div>
+                    </div>
+
+                    <!-- Legal Mention -->
+                    <div class="legal-mention">
+                        <strong>Mention légale:</strong> ${selectedRegime?.legalMention || 'TVA non applicable'}
+                    </div>
+
+                    <!-- Disclaimers -->
+                    <div class="disclaimers">
+                        <div style="margin-bottom: 15px;">
+                            <strong>FR:</strong> Responsabilité des informations fiscales — Les informations d'identification (statut, NIF/CIF/SIREN, numéros de TVA, régime fiscal, taux de TVA, IRPF/withholding) sont déclarées et validées par la créatrice. L'agence ne fournit pas de conseil fiscal et décline toute responsabilité quant à l'exactitude de ces informations et à l'application des taux/mentions légales. La créatrice demeure seule responsable de la conformité de sa facturation et de ses obligations fiscales et sociales.
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <strong>ES:</strong> Responsabilidad sobre datos fiscales — La información (estatus, NIF/CIF, números de IVA, régimen fiscal, tipos de IVA, IRPF/retención) es declarada y validada por la creadora. La agencia no presta asesoramiento fiscal y declina toda responsabilidad sobre la exactitud y la aplicación de tipos/leyendas. La creadora es única responsable del cumplimiento de su facturación y de sus obligaciones fiscales y sociales.
+                        </div>
+                        <div>
+                            <strong>EN:</strong> Tax information responsibility — All tax data (status, tax/VAT IDs, VAT regimes, VAT rates, withholding) are provided and confirmed by the creator. The agency does not provide tax advice and accepts no liability for the accuracy or application of such data. The creator remains solely responsible for invoicing compliance and all tax/social obligations.
+                        </div>
+                    </div>
                 </div>
-                <div class="details">
-                    <p>Invoice Number: ${invoiceData.invoiceNumber}</p>
-                    <p>Date: ${invoiceData.date}</p>
-                </div>
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Description</th>
-                            <th>Amount (€)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>${invoiceData.description}</td>
-                            <td>${invoiceData.amount}</td>
-                        </tr>
-                    </tbody>
-                </table>
-                <p class="total">Total: €${invoiceData.amount}</p>
-                <div class="footer">
-                    <p>Thank you for your business!</p>
-                    <p>Generated via Grapper Dashboard</p>
+
+                <!-- Banking Details (Bottom Right) -->
+                <div class="banking-details">
+                    <strong>Coordonnées bancaires:</strong><br/>
+                    Banque: [Nom de la banque]<br/>
+                    IBAN: [IBAN]<br/>
+                    SWIFT/BIC: [BIC]
                 </div>
             </body>
             </html>
@@ -1845,86 +2086,223 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 max-w-4xl mx-auto">
+            {/* Invoice Form */}
             <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-200">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">{t('invoiceGenerator') || 'Generate Invoice'}</h2>
-    
-                
-                <form className="space-y-4">
+                <h2 className="text-xl font-bold text-gray-900 mb-6">{t('invoiceGenerator') || 'Générateur de Facture'}</h2>
+
+                {/* User Billing Information Display */}
+                {userBillingData && (
+                    <div className="mb-6 p-4 bg-blue-50 rounded-lg">
+                        <h3 className="font-semibold text-blue-900 mb-2">Informations de facturation (chargées depuis la base de données)</h3>
+                        <div className="text-sm text-blue-800">
+                            <div><strong>Nom:</strong> {userBillingData.fullName || userBillingData.companyName || 'Non spécifié'}</div>
+                            <div><strong>Adresse:</strong> {userBillingData.address || 'Non spécifiée'}</div>
+                            <div><strong>Localisation:</strong> {userBillingData.postalCode} {userBillingData.city}, {userBillingData.country}</div>
+                            {userBillingData.siret && <div><strong>SIRET:</strong> {userBillingData.siret}</div>}
+                            {userBillingData.tva && <div><strong>TVA:</strong> {userBillingData.tva}</div>}
+                        </div>
+                    </div>
+                )}
+
+                {/* Invoice Basic Information */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('invoiceNumber') || 'Invoice Number'}</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Numéro de facture</label>
                         <input
                             type="text"
-                            name="invoiceNumber"
                             value={invoiceData.invoiceNumber}
-                            onChange={handleChange}
+                            onChange={(e) => handleInvoiceChange({ target: { name: 'invoiceNumber', value: e.target.value } })}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="F250001"
                         />
                     </div>
-                    
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('date') || 'Date'}</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Date de facturation</label>
                         <input
                             type="date"
-                            name="date"
                             value={invoiceData.date}
-                            onChange={handleChange}
+                            onChange={(e) => handleInvoiceChange({ target: { name: 'date', value: e.target.value } })}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         />
                     </div>
-                    
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('amount') || 'Amount (€)'}</label>
+                </div>
+
+                {/* TVA Regime Selection */}
+                <div className="mb-6">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Régime TVA</label>
+                    <select
+                        value={invoiceData.selectedRegime}
+                        onChange={handleRegimeChange}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                        {tvaRegimes.map(regime => (
+                            <option key={regime.id} value={regime.id}>
+                                {regime.name}
+                            </option>
+                        ))}
+                    </select>
+                    {selectedRegime && (
+                        <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-sm">
+                            <strong>Mention légale:</strong> {selectedRegime.legalMention}
+                        </div>
+                    )}
+                </div>
+
+                {/* Invoice Items Table */}
+                <div className="mb-6">
+                    <div className="flex justify-between items-center mb-3">
+                        <h3 className="text-lg font-semibold text-gray-900">Articles</h3>
+                        <button
+                            type="button"
+                            onClick={addItem}
+                            className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700"
+                        >
+                            + Ajouter un article
+                        </button>
+                    </div>
+
+                    <div className="overflow-x-auto">
+                        <table className="w-full border-collapse border border-gray-300">
+                            <thead>
+                                <tr className="bg-gray-50">
+                                    <th className="border border-gray-300 px-3 py-2 text-left text-sm font-medium">Description</th>
+                                    <th className="border border-gray-300 px-3 py-2 text-center text-sm font-medium w-20">Quantité</th>
+                                    <th className="border border-gray-300 px-3 py-2 text-right text-sm font-medium w-32">Prix unitaire HT (€)</th>
+                                    <th className="border border-gray-300 px-3 py-2 text-center text-sm font-medium w-20">% TVA</th>
+                                    <th className="border border-gray-300 px-3 py-2 text-right text-sm font-medium w-32">Total TVA (€)</th>
+                                    <th className="border border-gray-300 px-3 py-2 text-right text-sm font-medium w-32">Total TTC (€)</th>
+                                    <th className="border border-gray-300 px-3 py-2 text-center text-sm font-medium w-16">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {invoiceData.items.map((item, index) => {
+                                    const itemSubtotal = parseFloat(item.unitPrice || 0) * parseInt(item.quantity || 1);
+                                    const itemTva = itemSubtotal * (selectedRegime?.rate || 0) / 100;
+                                    const itemTotal = itemSubtotal + itemTva;
+
+                                    return (
+                                        <tr key={index}>
+                                            <td className="border border-gray-300 px-3 py-2">
+                                                <input
+                                                    type="text"
+                                                    value={item.description}
+                                                    onChange={(e) => handleItemChange(index, 'description', e.target.value)}
+                                                    className="w-full px-2 py-1 border border-gray-200 rounded text-sm"
+                                                    placeholder="Description de l'article"
+                                                />
+                                            </td>
+                                            <td className="border border-gray-300 px-3 py-2 text-center">
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    value={item.quantity}
+                                                    onChange={(e) => handleItemChange(index, 'quantity', parseInt(e.target.value) || 1)}
+                                                    className="w-16 px-2 py-1 border border-gray-200 rounded text-sm text-center"
+                                                />
+                                            </td>
+                                            <td className="border border-gray-300 px-3 py-2 text-right">
+                                                <input
+                                                    type="number"
+                                                    min="0"
+                                                    step="0.01"
+                                                    value={item.unitPrice}
+                                                    onChange={(e) => handleItemChange(index, 'unitPrice', parseFloat(e.target.value) || 0)}
+                                                    className="w-full px-2 py-1 border border-gray-200 rounded text-sm text-right"
+                                                />
+                                            </td>
+                                            <td className="border border-gray-300 px-3 py-2 text-center text-sm">
+                                                {selectedRegime?.rate || 0}%
+                                            </td>
+                                            <td className="border border-gray-300 px-3 py-2 text-right text-sm">
+                                                {itemTva.toFixed(2)} €
+                                            </td>
+                                            <td className="border border-gray-300 px-3 py-2 text-right text-sm font-medium">
+                                                {itemTotal.toFixed(2)} €
+                                            </td>
+                                            <td className="border border-gray-300 px-3 py-2 text-center">
+                                                {invoiceData.items.length > 1 && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => removeItem(index)}
+                                                        className="text-red-600 hover:text-red-800 text-sm"
+                                                    >
+                                                        ✕
+                                                    </button>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Totals Summary */}
+                    <div className="mt-4 flex justify-end">
+                        <div className="w-64">
+                            <div className="flex justify-between py-1 border-b">
+                                <span>Total HT:</span>
+                                <span>{subtotal.toFixed(2)} €</span>
+                            </div>
+                            <div className="flex justify-between py-1 border-b">
+                                <span>Total TVA:</span>
+                                <span>{tvaAmount.toFixed(2)} €</span>
+                            </div>
+                            <div className="flex justify-between py-2 font-bold text-lg border-b-2 border-gray-400">
+                                <span>Total TTC:</span>
+                                <span>{totalTTC.toFixed(2)} €</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Legal Disclaimer and Confirmation */}
+                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+                    <h4 className="font-semibold text-red-900 mb-2">⚠️ Responsabilité fiscale</h4>
+                    <p className="text-sm text-red-800 mb-3">
+                        Je confirme que les informations fiscales saisies sont exactes et que j'assume l'entière responsabilité de l'application des taux et mentions.
+                    </p>
+                    <label className="flex items-center">
                         <input
-                            type="number"
-                            name="amount"
-                            value={invoiceData.amount}
-                            onChange={handleChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            type="checkbox"
+                            checked={invoiceData.confirmationChecked}
+                            onChange={(e) => setInvoiceData({ ...invoiceData, confirmationChecked: e.target.checked })}
+                            className="mr-2"
                         />
-                    </div>
-                    
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('description') || 'Description'}</label>
-                        <textarea
-                            name="description"
-                            value={invoiceData.description}
-                            onChange={handleChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            rows="3"
-                        />
-                    </div>
-                    
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('agentName') || 'Agent Name'}</label>
-                        <input
-                            type="text"
-                            name="agentName"
-                            value={invoiceData.agentName}
-                            onChange={handleChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        />
-                    </div>
-                    
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('agentAddress') || 'Agent Address'}</label>
-                        <input
-                            type="text"
-                            name="agentAddress"
-                            value={invoiceData.agentAddress}
-                            onChange={handleChange}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        />
-                    </div>
-                    
+                        <span className="text-sm text-red-800">
+                            Je confirme avoir vérifié l'exactitude des informations fiscales
+                        </span>
+                    </label>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-4">
                     <button
                         type="button"
                         onClick={generateInvoice}
-                        className="gradient-bg text-white px-6 py-3 rounded-lg hover:opacity-90 transition-opacity"
+                        disabled={!invoiceData.confirmationChecked}
+                        className="gradient-bg text-white px-6 py-3 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        {t('generateInvoice') || 'Generate & Preview Invoice'}
+                        📄 Générer la Facture (PDF)
                     </button>
-                </form>
+                    <button
+                        type="button"
+                        onClick={() => window.open('', '_blank')}
+                        className="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors"
+                    >
+                        👁️ Aperçu
+                    </button>
+                </div>
+            </div>
+
+            {/* Preview Section (can be expanded) */}
+            <div className="bg-white p-4 sm:p-6 rounded-xl shadow-sm border border-gray-200">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Aperçu de la facture</h3>
+                <div className="text-center text-gray-500 py-8">
+                    <p>L'aperçu sera disponible après avoir configuré tous les champs requis.</p>
+                    <p className="text-sm mt-2">Cliquez sur "Générer la Facture" pour créer le PDF.</p>
+                </div>
             </div>
         </div>
     );

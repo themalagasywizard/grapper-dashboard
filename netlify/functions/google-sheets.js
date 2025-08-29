@@ -24,6 +24,8 @@ exports.handler = async (event, context) => {
         const LOGIN_RANGE = process.env.GOOGLE_SHEETS_LOGIN_RANGE || 'Mail!A1:B2000'; // Forcing A:B to ensure both columns are read
         const TOOLBOX_RANGE = process.env.GOOGLE_SHEETS_TOOLBOX_RANGE || "'Boite à Outil'!A1:ZZ2000";
         const EVENTS_RANGE = process.env.GOOGLE_SHEETS_EVENTS_RANGE || 'Events!A1:Z2000';
+        const USER_BILLING_RANGE = process.env.GOOGLE_SHEETS_USER_BILLING_RANGE || "'Adresse Facturation Talents'!A1:G2000";
+        const AGENCY_BILLING_RANGE = process.env.GOOGLE_SHEETS_AGENCY_BILLING_RANGE || "'Adresse Facturation Grapper'!A1:A10";
 
         // Validate environment variables
         if (!API_KEY || !SPREADSHEET_ID) {
@@ -40,8 +42,8 @@ exports.handler = async (event, context) => {
             };
         }
 
-        // Use batchGet to fetch campaigns and login emails in one request
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values:batchGet?ranges=${encodeURIComponent(CAMPAIGNS_RANGE)}&ranges=${encodeURIComponent(LOGIN_RANGE)}&ranges=${encodeURIComponent(TOOLBOX_RANGE)}&ranges=${encodeURIComponent(EVENTS_RANGE)}&key=${API_KEY}`;
+        // Use batchGet to fetch all data in one request
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values:batchGet?ranges=${encodeURIComponent(CAMPAIGNS_RANGE)}&ranges=${encodeURIComponent(LOGIN_RANGE)}&ranges=${encodeURIComponent(TOOLBOX_RANGE)}&ranges=${encodeURIComponent(EVENTS_RANGE)}&ranges=${encodeURIComponent(USER_BILLING_RANGE)}&ranges=${encodeURIComponent(AGENCY_BILLING_RANGE)}&key=${API_KEY}`;
 
 
 
@@ -81,6 +83,8 @@ exports.handler = async (event, context) => {
         const mailValues = data.valueRanges[1]?.values || [];
         const toolboxValues = data.valueRanges[2]?.values || [];
         const eventsValues = data.valueRanges[3]?.values || [];
+        const userBillingValues = data.valueRanges[4]?.values || [];
+        const agencyBillingValues = data.valueRanges[5]?.values || [];
 
         // Process login data with header-detected columns
 
@@ -122,6 +126,27 @@ exports.handler = async (event, context) => {
         // Keep backward compatibility for loginEmails
         const loginEmails = loginData.map(item => item.email);
 
+        // Process user billing data (Adresse Facturation Talents)
+        let userBillingData = [];
+        if (userBillingValues.length > 0) {
+            const rows = userBillingValues.slice(1); // Skip header row
+            userBillingData = rows.map(row => ({
+                email: (row[0] || '').toString().trim(),
+                fullName: (row[1] || '').toString().trim(),
+                companyName: (row[2] || '').toString().trim(),
+                address: (row[3] || '').toString().trim(),
+                postalCode: (row[4] || '').toString().trim(),
+                city: (row[5] || '').toString().trim(),
+                country: (row[6] || '').toString().trim()
+            })).filter(user => user.email && user.email.includes('@'));
+        }
+
+        // Process agency billing data (Adresse Facturation Grapper)
+        let agencyBillingData = [];
+        if (agencyBillingValues.length > 0) {
+            agencyBillingData = agencyBillingValues.map(row => (row[0] || '').toString().trim()).filter(line => line.trim() !== '');
+        }
+
         return {
             statusCode: 200,
             headers,
@@ -132,6 +157,8 @@ exports.handler = async (event, context) => {
                 loginData, // Include full login data with passwords
                 toolbox: toolboxValues,
                 events: eventsValues,
+                userBillingData,
+                agencyBillingData,
                 rowCount: campaignsValues.length,
                 timestamp: new Date().toISOString()
             })
