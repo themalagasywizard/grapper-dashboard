@@ -326,8 +326,6 @@ class GoogleSheetsService {
                 throw new Error('No data found in spreadsheet');
             }
 
-
-
             // Convert campaigns to object format
             const headers = rows[0];
             const data = rows.slice(1).map(row => {
@@ -514,7 +512,7 @@ const buildUsersFromLoginData = (loginData, sheetData) => {
         const key = email.toLowerCase();
         if (seen.has(key)) return;
         seen.add(key);
-const nameGuess = nameByEmail.get(key) || formatUsername(email);
+        const nameGuess = nameByEmail.get(key) || formatUsername(email);
         
         const user = { 
             email, 
@@ -523,12 +521,7 @@ const nameGuess = nameByEmail.get(key) || formatUsername(email);
             password: password // Include password for validation
         };
         
-        // Debug log for marine specifically
-        if (email.toLowerCase().includes('marine')) {
 
-                email: user.email,
-
-        }
         
         users.push(user);
     });
