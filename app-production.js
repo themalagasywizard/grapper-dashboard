@@ -296,12 +296,10 @@ class GoogleSheetsService {
         try {
             // Check cache
             if (this.lastFetch && Date.now() - this.lastFetch.timestamp < this.cacheTimeout) {
-
                 return this.lastFetch.data;
             }
 
             // Use secure Netlify serverless function
-
             const response = await fetch(GOOGLE_SHEETS_CONFIG.NETLIFY_FUNCTION_URL);
             
             if (!response.ok) {
@@ -2347,11 +2345,6 @@ const App = () => {
             const loginDataWithoutHeader = Array.isArray(loginData) && loginData.length > 0
                 ? (normalizeString(loginData[0].email) === 'mail' ? loginData.slice(1) : loginData)
                 : [];
-
-
-                loginDataLength: loginDataWithoutHeader.length,
-                sample: loginDataWithoutHeader.slice(0, 3).map(u => ({ email: u.email, hasPassword: !!(u.password && u.password.trim()) }))
-            });
             
             // Use login data with passwords.
             if (loginDataWithoutHeader.length > 0) {
@@ -2364,7 +2357,6 @@ const App = () => {
             toolboxMatrix = googleSheetsService.getToolboxMatrix();
             
             setLastUpdated(Date.now());
-
             setLoading(false);
             
             // If user is logged in, refresh their campaigns
@@ -2380,7 +2372,6 @@ const App = () => {
             
         } catch (error) {
             console.error('Error loading Google Sheets data:', error);
-
             
             // Provide more specific error messages
             let errorMessage = error.message || 'Unknown error occurred';
