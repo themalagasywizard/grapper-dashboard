@@ -1992,21 +1992,9 @@ const Toolbox = ({ user, toolboxMatrix, language }) => {
 };
 
 const DriveUploader = ({ user }) => {
-    const [folder, setFolder] = React.useState(null);
     const [file, setFile] = React.useState(null);
     const [uploading, setUploading] = React.useState(false);
     const [message, setMessage] = React.useState('');
-
-    React.useEffect(() => {
-        const fetchFolder = async () => {
-            try {
-                const res = await fetch(`/.netlify/functions/drive-upload?email=${encodeURIComponent(user.email)}`);
-                const data = await res.json();
-                if (data.success) setFolder(data.folder);
-            } catch (_) {}
-        };
-        fetchFolder();
-    }, [user.email]);
 
     const onUpload = async () => {
         if (!file) return;
@@ -2027,13 +2015,8 @@ const DriveUploader = ({ user }) => {
             });
             const data = await res.json();
             if (data.success) {
-                setMessage('Uploaded successfully');
+                setMessage('Upload completed ✓');
                 setFile(null);
-                setFolder(null);
-                // Refresh folder
-                const res2 = await fetch(`/.netlify/functions/drive-upload?email=${encodeURIComponent(user.email)}`);
-                const data2 = await res2.json();
-                if (data2.success) setFolder(data2.folder);
             } else {
                 setMessage('Upload failed');
             }
@@ -2047,9 +2030,7 @@ const DriveUploader = ({ user }) => {
     return (
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
             <h3 className="text-lg font-bold text-gray-900 mb-2">Drive Uploads</h3>
-            {folder && (
-                <p className="text-sm text-gray-600 mb-4">Your folder: <a className="text-blue-600 underline" href={folder.webViewLink} target="_blank" rel="noreferrer">Open in Drive</a></p>
-            )}
+
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                 <div className="w-full sm:w-auto">
                     <input 
@@ -2066,7 +2047,11 @@ const DriveUploader = ({ user }) => {
                     {uploading ? 'Uploading…' : 'Upload'}
                 </button>
             </div>
-            {message && <p className="text-sm text-gray-600 mt-2">{message}</p>}
+            {message && (
+                <p className={`text-sm mt-2 ${message.includes('✓') ? 'text-green-600 font-medium' : 'text-red-600'}`}>
+                    {message}
+                </p>
+            )}
         </div>
     );
 };
