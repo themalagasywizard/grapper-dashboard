@@ -2183,11 +2183,13 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                 {/* User Billing Information Display */}
                 {userBillingData && (
                     <div className="mb-6 p-4 bg-blue-50 rounded-lg">
-                        <h3 className="font-semibold text-blue-900 mb-2">Informations de facturation (chargées depuis la base de données)</h3>
+                        <h3 className="font-semibold text-blue-900 mb-2">Informations de facturation</h3>
                         <div className="text-sm text-blue-800">
                             <div><strong>Nom:</strong> {userBillingData.prenom && userBillingData.nom ? `${userBillingData.prenom} ${userBillingData.nom}` : userBillingData.companyName || 'Non spécifié'}</div>
                             <div><strong>Adresse:</strong> {userBillingData.address || 'Non spécifiée'}</div>
-                            <div><strong>Localisation:</strong> {userBillingData.postalCode} {userBillingData.city}, {userBillingData.country}</div>
+                            {userBillingData.postalCode || userBillingData.city || userBillingData.country ? (
+                                <div><strong>Localisation:</strong> {[userBillingData.postalCode, userBillingData.city, userBillingData.country].filter(Boolean).join(' ')}</div>
+                            ) : null}
                             {userBillingData.siret && <div><strong>SIRET:</strong> {userBillingData.siret}</div>}
                             {userBillingData.tva && <div><strong>TVA:</strong> {userBillingData.tva}</div>}
                         </div>
