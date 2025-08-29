@@ -296,12 +296,12 @@ class GoogleSheetsService {
         try {
             // Check cache
             if (this.lastFetch && Date.now() - this.lastFetch.timestamp < this.cacheTimeout) {
-                console.log('Using cached data');
+
                 return this.lastFetch.data;
             }
 
             // Use secure Netlify serverless function
-            console.log('Fetching data via secure serverless function...');
+
             const response = await fetch(GOOGLE_SHEETS_CONFIG.NETLIFY_FUNCTION_URL);
             
             if (!response.ok) {
@@ -326,10 +326,7 @@ class GoogleSheetsService {
                 throw new Error('No data found in spreadsheet');
             }
 
-            console.log('Raw serverless function data:', {
-                rows: rows.length,
-                timestamp: result.timestamp
-            });
+
 
             // Convert campaigns to object format
             const headers = rows[0];
@@ -341,18 +338,14 @@ class GoogleSheetsService {
                 return obj;
             });
 
-            console.log('Processed data:', {
-                totalRows: data.length,
-                sampleRow: data[0],
-                headers: headers
-            });
+
 
             // Capture login emails from serverless function (Mail sheet)
             this.loginEmails = Array.isArray(result.loginEmails) ? result.loginEmails : [];
             
             // Capture full login data with passwords
             this.loginData = Array.isArray(result.loginData) ? result.loginData : [];
-            console.log('Raw loginData from serverless function:', this.loginData);
+
 
             // Capture toolbox raw matrix
             this.toolboxMatrix = Array.isArray(result.toolbox) ? result.toolbox : [];
@@ -438,9 +431,9 @@ const cleanCurrency = (amount) => {
 const extractUsersFromSheetData = (sheetData) => {
     const usersMap = new Map();
     
-    console.log('Extracting users from sheet data...');
-    console.log('Sample row for debugging:', sheetData[0]);
-    console.log('Available columns:', Object.keys(sheetData[0] || {}));
+
+
+
     
     sheetData.forEach((row, index) => {
         // Prefer Talent (A) if it contains an email, otherwise fall back to Mail
@@ -450,7 +443,7 @@ const extractUsersFromSheetData = (sheetData) => {
         const talent = talentValue; // may be email in new DB
         
         if (index < 5) {
-            console.log(`Row ${index}: Email="${email}", Talent="${talent}", Full row keys:`, Object.keys(row));
+
         }
         
         // Only process rows with valid email addresses (not empty, not #N/A)
@@ -467,7 +460,7 @@ const extractUsersFromSheetData = (sheetData) => {
     });
     
     const users = Array.from(usersMap.values());
-    console.log('Extracted users:', users);
+
     return users;
 };
 
@@ -515,11 +508,6 @@ const buildUsersFromLoginData = (loginData, sheetData) => {
         
         // Debug log for each item
         if (index < 5) {
-            console.log(`buildUsersFromLoginData - Item ${index}:`, { 
-                email, 
-                password: password ? '[HAS_PASSWORD]' : '[NO_PASSWORD]',
-                originalItem: item 
-            });
         }
         
         if (!email || !email.includes('@')) return;
@@ -537,11 +525,9 @@ const nameGuess = nameByEmail.get(key) || formatUsername(email);
         
         // Debug log for marine specifically
         if (email.toLowerCase().includes('marine')) {
-            console.log('Marine user created:', {
+
                 email: user.email,
-                hasPassword: !!user.password,
-                passwordLength: user.password ? user.password.length : 0
-            });
+
         }
         
         users.push(user);
@@ -1091,7 +1077,7 @@ const Dashboard = ({ campaigns, events = [], language }) => {
                     const isCompleted = campaign.Status === 'Completed';
                     const backgroundColor = isCompleted ? '#22c55e' : '#6366f1'; // Green for completed, purple for upcoming
                     
-                    console.log(`Calendar Event: ${campaign.Brand_Name} - Status: \"${campaign.Status}\" - Color: ${backgroundColor}`);
+
                     
                     return {
                         id: campaign.Campaign_ID,
@@ -1164,7 +1150,7 @@ const Dashboard = ({ campaigns, events = [], language }) => {
                                 currentView = calendarInstance.current.view.type;
                             }
                         } catch (error) {
-                            console.log('View type detection fallback, using default:', currentView);
+
                         }
                         
                         if (currentView === 'upcomingList') {
@@ -1172,12 +1158,12 @@ const Dashboard = ({ campaigns, events = [], language }) => {
                             const upcomingEvents = (Array.isArray(events) ? events : [])
                                 .filter(event => new Date(event.date) >= today)
                                 .sort((a, b) => new Date(a.date) - new Date(b.date));
-                            console.log(`List view: Showing ${upcomingEvents.length} upcoming events`);
+
                             successCallback(upcomingEvents);
                         } else {
                             // For calendar view (dayGridMonth): ALL events (past and future)
                             const allProvided = Array.isArray(events) ? events : [];
-                            console.log(`Calendar view (${currentView}): Showing ${allProvided.length} total events (past and future)`);
+
                             successCallback(allProvided);
                         }
                     },
@@ -2181,7 +2167,7 @@ const Login = ({ onLogin, availableUsers, language, toggleLanguage, loading }) =
         // Clean up passwords by removing all whitespace and normalizing
         const cleanPassword = (pwd) => {
             const cleaned = (pwd || '').trim();
-            console.log('Password cleaning:', {
+
                 original: pwd,
                 cleaned: cleaned,
                 length: cleaned.length,
@@ -2197,17 +2183,7 @@ const Login = ({ onLogin, availableUsers, language, toggleLanguage, loading }) =
         const passwordMatches = hasSetPassword ? userPassword === enteredPassword : true;
         
         // Debug logging for password validation
-        console.log('Password Debug:', {
-            userEmail: user.email,
-            hasPassword: hasSetPassword,
-            passwordRequired: hasSetPassword,
-            isValidPassword: passwordMatches,
-            userPasswordLength: userPassword.length,
-            enteredPasswordLength: enteredPassword.length,
-            // Show first and last character of each password for debugging
-            userPasswordHint: userPassword ? `${userPassword[0]}...${userPassword[userPassword.length-1]}` : '',
-            enteredPasswordHint: enteredPassword ? `${enteredPassword[0]}...${enteredPassword[enteredPassword.length-1]}` : ''
-        });
+
         
         // Check password validation
         if (hasSetPassword && !passwordMatches) {
@@ -2362,7 +2338,7 @@ const App = () => {
     // Load Google Sheets data
     const loadSheetData = async (forceRefresh = false) => {
         try {
-            console.log('loadSheetData started', { forceRefresh, currentUser: !!currentUser });
+
             setLoading(true);
             setError(null);
             
@@ -2385,7 +2361,7 @@ const App = () => {
                 ? (normalizeString(loginData[0].email) === 'mail' ? loginData.slice(1) : loginData)
                 : [];
 
-            console.log('Login Data Debug:', {
+
                 loginDataLength: loginDataWithoutHeader.length,
                 sample: loginDataWithoutHeader.slice(0, 3).map(u => ({ email: u.email, hasPassword: !!(u.password && u.password.trim()) }))
             });
@@ -2401,7 +2377,7 @@ const App = () => {
             toolboxMatrix = googleSheetsService.getToolboxMatrix();
             
             setLastUpdated(Date.now());
-            console.log('loadSheetData completed successfully');
+
             setLoading(false);
             
             // If user is logged in, refresh their campaigns
@@ -2417,7 +2393,7 @@ const App = () => {
             
         } catch (error) {
             console.error('Error loading Google Sheets data:', error);
-            console.log('loadSheetData failed, setting loading to false');
+
             
             // Provide more specific error messages
             let errorMessage = error.message || 'Unknown error occurred';
@@ -2447,7 +2423,7 @@ const App = () => {
         const interval = setInterval(() => {
             // Only refresh if user is logged in and not currently loading
             if (currentUser && !loading) {
-                console.log('Auto-refreshing for notifications...');
+
                 loadSheetData(true); // Force refresh to check for new events
             }
         }, 30000); // 30 seconds

@@ -43,7 +43,7 @@ exports.handler = async (event, context) => {
         // Use batchGet to fetch campaigns and login emails in one request
         const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values:batchGet?ranges=${encodeURIComponent(CAMPAIGNS_RANGE)}&ranges=${encodeURIComponent(LOGIN_RANGE)}&ranges=${encodeURIComponent(TOOLBOX_RANGE)}&ranges=${encodeURIComponent(EVENTS_RANGE)}&key=${API_KEY}`;
 
-        console.log('Fetching from Google Sheets (batchGet)...', { SPREADSHEET_ID, CAMPAIGNS_RANGE, LOGIN_RANGE });
+
 
         const response = await fetch(url);
         if (!response.ok) {
@@ -83,7 +83,7 @@ exports.handler = async (event, context) => {
         const eventsValues = data.valueRanges[3]?.values || [];
 
         // Process login data with header-detected columns
-        console.log('Mail worksheet raw data (first 5 rows):', mailValues.slice(0, 5));
+
 
         const normalize = (s) => (s || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 
@@ -97,7 +97,7 @@ exports.handler = async (event, context) => {
             // Find password column: support 'mot de passe', 'motde passe', 'password', 'mdp'
             const passwordIdx = header.findIndex(h => h.includes('mot de passe') || h.includes('motde passe') || h.includes('password') || h === 'mdp' || h.includes('motdepasse'));
 
-            console.log('Detected columns:', { emailIdx, passwordIdx, headerRaw: mailValues[0] });
+
 
             if (emailIdx === -1) {
                 console.error("Could not find a valid email column in 'Mail' sheet.");
@@ -109,7 +109,7 @@ exports.handler = async (event, context) => {
                         const password = passwordIdx > -1 ? (row[passwordIdx] || '').toString().trim() : '';
 
                         if (index < 5) {
-                            console.log(`Row ${index + 2}:`, { email, passwordMasked: password ? '[HAS_PASSWORD]' : '[NO_PASSWORD]', rawRow: row });
+
                         }
 
                         if (!email || !email.includes('@')) return null;
@@ -121,14 +121,6 @@ exports.handler = async (event, context) => {
 
         // Keep backward compatibility for loginEmails
         const loginEmails = loginData.map(item => item.email);
-
-        console.log('Successfully fetched data:', {
-            campaignsRows: campaignsValues.length,
-            loginEmailsCount: loginEmails.length,
-            loginDataCount: loginData.length,
-            toolboxRows: toolboxValues.length,
-            eventsRows: eventsValues.length
-        });
 
         return {
             statusCode: 200,

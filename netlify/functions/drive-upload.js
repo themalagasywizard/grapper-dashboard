@@ -49,15 +49,15 @@ exports.handler = async (event) => {
         'trashed = false',
       ].join(' and ');
       
-      console.log(`Searching for folder with query: ${q}`);
+
       const listRes = await drive.files.list({ q, fields: 'files(id, name, webViewLink)' });
 
       if (listRes.data.files && listRes.data.files.length > 0) {
-        console.log(`Found existing folder for ${email}:`, listRes.data.files[0]);
+
         return listRes.data.files[0];
       }
       
-      console.log(`No folder found for ${email}. Creating a new one...`);
+
       // Create if not found
       const createRes = await drive.files.create({
         requestBody: {
@@ -68,7 +68,7 @@ exports.handler = async (event) => {
         fields: 'id, name, webViewLink',
       });
       
-      console.log(`Created new folder for ${email}:`, createRes.data);
+
       return createRes.data;
     };
 
@@ -96,7 +96,7 @@ exports.handler = async (event) => {
         body: Readable.from(Buffer.from(dataBase64, 'base64')),
       };
       
-      console.log(`Attempting to upload file '${filename}' to folder ID '${folder.id}'...`);
+
       
       try {
         const createRes = await drive.files.create({
@@ -105,7 +105,7 @@ exports.handler = async (event) => {
           fields: 'id, name, webViewLink',
         });
         
-        console.log(`Successfully uploaded file:`, createRes.data);
+
         return { statusCode: 200, headers, body: JSON.stringify({ success: true, file: createRes.data, folderId: folder.id }) };
       } catch (uploadError) {
         console.error('Google Drive API file upload error:', uploadError);
