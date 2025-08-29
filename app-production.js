@@ -1922,19 +1922,49 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                                 gap: 12px;
                                 align-items: center;
                             }
-                            .save-pdf, .print {
+                            .save-pdf {
                                 width: 100%;
-                                max-width: 200px;
+                                max-width: 250px;
+                                height: 50px;
+                                font-size: 18px;
                             }
                         }
                         .action-button:hover { opacity: 0.9; }
                         .save-pdf { background-color: #2563eb; color: white; }
-                        .print { background-color: #059669; color: white; }
                     }
                     @media print {
-                        body { margin: 0; padding: 0; }
+                        body {
+                            margin: 0;
+                            padding: 0;
+                            height: 297mm;
+                            width: 210mm;
+                            -webkit-print-color-adjust: exact;
+                            print-color-adjust: exact;
+                        }
                         .no-print { display: none; }
                         .page-break { page-break-before: always; }
+                        .invoice-container {
+                            padding: 15mm !important;
+                            max-width: 210mm !important;
+                        }
+                        .header-section {
+                            margin-bottom: 20px !important;
+                        }
+                        .invoice-table {
+                            font-size: 10px !important;
+                            margin: 15px 0 !important;
+                        }
+                        .invoice-table th, .invoice-table td {
+                            padding: 4px 6px !important;
+                        }
+                        .legal-mention, .disclaimers {
+                            font-size: 8px !important;
+                            line-height: 1.2 !important;
+                            margin: 10px 0 !important;
+                        }
+                        .banking-details {
+                            font-size: 9px !important;
+                        }
                     }
                     .invoice-container {
                         max-width: 210mm;
@@ -2015,22 +2045,28 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                         border-radius: 5px;
                     }
                 </style>
-                <script>
-                    function printInvoice() {
-                        window.print();
-                    }
-
+                                <script>
                     function savePDF() {
+                        // Hide buttons before printing/saving
                         document.querySelector('.button-container').style.display = 'none';
+
+                        // Force single page layout for mobile
+                        document.body.style.height = '297mm';
+                        document.body.style.overflow = 'hidden';
+
+                        // Trigger print dialog (mobile browsers will offer PDF save)
                         window.print();
+
+                        // Restore original layout
                         document.querySelector('.button-container').style.display = 'flex';
+                        document.body.style.height = '';
+                        document.body.style.overflow = '';
                     }
                 </script>
             </head>
             <body>
                 <div class="no-print button-container">
                     <button onclick="savePDF()" class="action-button save-pdf">💾 Save as PDF</button>
-                    <button onclick="printInvoice()" class="action-button print">🖨️ Print</button>
                 </div>
 
                 <div class="invoice-container">
