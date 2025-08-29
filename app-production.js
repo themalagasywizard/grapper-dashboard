@@ -1956,17 +1956,7 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                         line-height: 1.4;
                         color: #666;
                     }
-                    .banking-details {
-                        position: absolute;
-                        bottom: 20mm;
-                        right: 20mm;
-                        width: 80mm;
-                        padding: 10px;
-                        background: #f8f9fa;
-                        border: 1px solid #ddd;
-                        border-radius: 5px;
-                        font-size: 10px;
-                    }
+
                     .regime-selector {
                         margin: 20px 0;
                         padding: 15px;
@@ -2080,14 +2070,16 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                             <strong>EN:</strong> Tax information responsibility — All tax data (status, tax/VAT IDs, VAT regimes, VAT rates, withholding) are provided and confirmed by the creator. The agency does not provide tax advice and accepts no liability for the accuracy or application of such data. The creator remains solely responsible for invoicing compliance and all tax/social obligations.
                         </div>
                     </div>
-                </div>
 
-                <!-- Banking Details (Bottom Right) -->
-                <div class="banking-details">
-                    <strong>Coordonnées bancaires:</strong><br/>
-                    Banque: [Nom de la banque]<br/>
-                    IBAN: [IBAN]<br/>
-                    SWIFT/BIC: [BIC]
+                    <!-- Banking Details -->
+                    <div style="margin-top: 30px; padding: 15px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 5px;">
+                        <h4 style="margin: 0 0 10px 0; font-size: 14px; font-weight: bold;">Coordonnées bancaires:</h4>
+                        <div style="font-size: 12px; line-height: 1.5;">
+                            Banque: [Nom de la banque]<br/>
+                            IBAN: [IBAN]<br/>
+                            SWIFT/BIC: [BIC]
+                        </div>
+                    </div>
                 </div>
             </body>
             </html>
@@ -2132,9 +2124,11 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                         <input
                             type="date"
                             value={invoiceData.date}
-                            onChange={(e) => handleInvoiceChange({ target: { name: 'date', value: e.target.value } })}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            readOnly
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed"
+                            title="La date est automatiquement définie à aujourd'hui"
                         />
+                        <p className="text-xs text-gray-500 mt-1">Date automatiquement définie à aujourd'hui</p>
                     </div>
                 </div>
 
@@ -2163,13 +2157,24 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                 <div className="mb-6">
                     <div className="flex justify-between items-center mb-3">
                         <h3 className="text-lg font-semibold text-gray-900">Articles</h3>
-                        <button
-                            type="button"
-                            onClick={addItem}
-                            className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700"
-                        >
-                            + Ajouter un article
-                        </button>
+                        <div className="flex gap-2">
+                            <button
+                                type="button"
+                                onClick={addItem}
+                                className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700"
+                            >
+                                + Ajouter
+                            </button>
+                            {invoiceData.items.length > 1 && (
+                                <button
+                                    type="button"
+                                    onClick={() => removeItem(invoiceData.items.length - 1)}
+                                    className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700"
+                                >
+                                    Supprimer le dernier
+                                </button>
+                            )}
+                        </div>
                     </div>
 
                     <div className="overflow-x-auto">
@@ -2182,7 +2187,6 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                                     <th className="border border-gray-300 px-3 py-2 text-center text-sm font-medium w-20">% TVA</th>
                                     <th className="border border-gray-300 px-3 py-2 text-right text-sm font-medium w-32">Total TVA (€)</th>
                                     <th className="border border-gray-300 px-3 py-2 text-right text-sm font-medium w-32">Total TTC (€)</th>
-                                    <th className="border border-gray-300 px-3 py-2 text-center text-sm font-medium w-16">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -2229,17 +2233,6 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                                             </td>
                                             <td className="border border-gray-300 px-3 py-2 text-right text-sm font-medium">
                                                 {itemTotal.toFixed(2)} €
-                                            </td>
-                                            <td className="border border-gray-300 px-3 py-2 text-center">
-                                                {invoiceData.items.length > 1 && (
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => removeItem(index)}
-                                                        className="text-red-600 hover:text-red-800 text-sm"
-                                                    >
-                                                        ✕
-                                                    </button>
-                                                )}
                                             </td>
                                         </tr>
                                     );
