@@ -1056,34 +1056,12 @@ const Dashboard = ({ campaigns, events = [], language }) => {
     const upcomingCampaigns = campaigns.filter(c => c.Status === 'Upcoming');
     const thisMonthRevenue = upcomingCampaigns.reduce((sum, c) => sum + c.Revenue, 0);
     
+        // Initialize calendar only once on mount
     useEffect(() => {
         if (calendarRef.current && !calendarInstance.current && window.FullCalendar) {
             const renderTimeout = setTimeout(() => {
-                // Prepare all events for calendar
                 const today = new Date();
                 today.setHours(0, 0, 0, 0); // Set to start of today
-                
-                // All events for calendar view (including past events)
-                const allEvents = campaigns.map(campaign => {
-                    const isCompleted = campaign.Status === 'Completed';
-                    const backgroundColor = isCompleted ? '#22c55e' : '#6366f1'; // Green for completed, purple for upcoming
-                    
-
-                    
-                    return {
-                        id: campaign.Campaign_ID,
-                        title: `${campaign.Brand_Name}`,
-                        date: campaign.Date, // This is the Date Fin
-                        extendedProps: {
-                            revenue: campaign.Revenue,
-                            talent: campaign.Talent,
-                            status: campaign.Status
-                        },
-                        backgroundColor: backgroundColor,
-                        borderColor: 'transparent',
-                        textColor: '#ffffff'
-                    };
-                });
 
                 const isSmallScreen = window.matchMedia('(max-width: 640px)').matches;
                 calendarInstance.current = new FullCalendar.Calendar(calendarRef.current, {
@@ -1133,7 +1111,7 @@ const Dashboard = ({ campaigns, events = [], language }) => {
                     events: function(fetchInfo, successCallback, failureCallback) {
                         // Safely get current view type with fallback
                         let currentView = 'upcomingList'; // Default to upcomingList
-                        
+
                         try {
                             if (fetchInfo && fetchInfo.view && fetchInfo.view.type) {
                                 currentView = fetchInfo.view.type;
@@ -1143,7 +1121,7 @@ const Dashboard = ({ campaigns, events = [], language }) => {
                         } catch (error) {
 
                         }
-                        
+
                         if (currentView === 'upcomingList') {
                             // For list view: only upcoming events from today onwards, sorted chronologically
                             const upcomingEvents = (Array.isArray(events) ? events : [])
@@ -1163,12 +1141,12 @@ const Dashboard = ({ campaigns, events = [], language }) => {
                         const eventType = info.event.extendedProps?.actionType || 'Campaign';
                         const brand = info.event.extendedProps?.brand || info.event.title;
                         let status = info.event.extendedProps?.originalStatus || info.event.extendedProps?.status || 'N/A';
-                        
+
                         // Transform \"Facture a envoyer\" to \"Fait\"
                         if (status.toLowerCase().includes('facture') && status.toLowerCase().includes('envoyer')) {
                             status = 'Fait';
                         }
-                        
+
                         // Prepare additional event data for Events from Events sheet
                         const eventData = {
                             timeDisplay: info.event.extendedProps?.timeDisplay,
@@ -1177,7 +1155,7 @@ const Dashboard = ({ campaigns, events = [], language }) => {
                             endTime: info.event.extendedProps?.endTime,
                             address: info.event.extendedProps?.address
                         };
-                        
+
                         // Create and show popup modal
                         showEventModal(eventType, brand, status, language, eventData);
                     },
@@ -1222,8 +1200,8 @@ const Dashboard = ({ campaigns, events = [], language }) => {
                             else if (type === 'Post') enforcedBg = '#3b82f6'; // blue
                             else if (type === 'Event') enforcedBg = '#8b5cf6'; // purple
                             else if (originalBg) enforcedBg = originalBg;
-                            
-                            
+
+
                             if (enforcedBg) {
                                 // Completely override all background properties
                                 info.el.style.setProperty('background', enforcedBg, 'important');
@@ -1233,18 +1211,18 @@ const Dashboard = ({ campaigns, events = [], language }) => {
                                 info.el.style.setProperty('border', 'none', 'important');
                                 info.el.style.setProperty('border-color', 'transparent', 'important');
                                 info.el.style.setProperty('color', '#ffffff', 'important');
-                                
+
                                 // Target all possible child elements
                                 const childSelectors = [
-                                    '.fc-event-main', 
-                                    '.fc-list-event-title', 
+                                    '.fc-event-main',
+                                    '.fc-list-event-title',
                                     '.fc-event-title',
                                     '.fc-event-main-frame',
                                     '.fc-daygrid-event-dot',
                                     '.fc-event-time',
                                     '.fc-event-title-container'
                                 ];
-                                
+
                                 childSelectors.forEach(selector => {
                                     const child = info.el.querySelector(selector);
                                     if (child) {
@@ -1254,7 +1232,7 @@ const Dashboard = ({ campaigns, events = [], language }) => {
                                         child.style.setProperty('color', '#ffffff', 'important');
                                     }
                                 });
-                                
+
                                 // Also apply to all direct children
                                 Array.from(info.el.children).forEach(child => {
                                     child.style.setProperty('background', enforcedBg, 'important');
@@ -1271,7 +1249,7 @@ const Dashboard = ({ campaigns, events = [], language }) => {
                             if (campaign) {
                                 const titleElement = info.el.querySelector('.fc-list-event-title') || info.el.querySelector('.fc-event-title');
                                 if (titleElement) {
-                                    titleElement.innerHTML = 
+                                    titleElement.innerHTML =
                                         `<strong>${campaign.Brand_Name}</strong><br/>
                                         <small style=\"color: #6b7280;\">€${campaign.Revenue.toLocaleString()} • ${campaign.Status}</small>`;
                                 }
@@ -1279,20 +1257,28 @@ const Dashboard = ({ campaigns, events = [], language }) => {
                         }
                     }
                 });
-                
+
                 calendarInstance.current.render();
             }, 100);
 
             return () => clearTimeout(renderTimeout);
         }
-        
+
         return () => {
             if (calendarInstance.current) {
                 calendarInstance.current.destroy();
                 calendarInstance.current = null;
             }
         };
-    }, [campaigns, language]);
+    }, [language]); // Only depend on language for calendar creation
+
+    // Update calendar events when campaigns change without recreating calendar
+    useEffect(() => {
+        if (calendarInstance.current && calendarInstance.current.refetchEvents) {
+            // Use FullCalendar's built-in method to refresh events
+            calendarInstance.current.refetchEvents();
+        }
+    }, [campaigns]); // Only update events when campaigns change
 
     return (
         <div className="space-y-6">
