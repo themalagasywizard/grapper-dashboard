@@ -1753,6 +1753,7 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
 
     const [invoiceData, setInvoiceData] = useState({
         invoiceNumber: 'F' + Date.now().toString().slice(-6),
+        marque: '',
         date: new Date().toISOString().split('T')[0],
         selectedRegime: 'france20',
         confirmationChecked: false,
@@ -1843,7 +1844,7 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
         invoiceWindow.document.write(`
             <html>
             <head>
-                <title>${invoiceData.invoiceNumber} - ${userName}</title>
+                <title>${invoiceData.invoiceNumber}${invoiceData.marque ? ' - ' + invoiceData.marque : ''} - ${userName}</title>
                 <style>
                     @media screen {
                         body {
@@ -2059,7 +2060,7 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                     <!-- Invoice Title -->
                     <div style="text-align: center; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 5px;">
                         <h1 style="margin: 0; font-size: 24px; font-weight: bold; color: #333;">
-                            ${invoiceData.invoiceNumber} - ${userName}
+                            ${invoiceData.invoiceNumber}${invoiceData.marque ? ' - ' + invoiceData.marque : ''} - ${userName}
                         </h1>
                     </div>
 
@@ -2183,7 +2184,7 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                 )}
 
                 {/* Invoice Basic Information */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Numéro de facture</label>
                         <input
@@ -2192,6 +2193,16 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                             onChange={(e) => handleInvoiceChange({ target: { name: 'invoiceNumber', value: e.target.value } })}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                             placeholder="F250001"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Marque</label>
+                        <input
+                            type="text"
+                            value={invoiceData.marque}
+                            onChange={(e) => handleInvoiceChange({ target: { name: 'marque', value: e.target.value } })}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="Nom de la marque"
                         />
                     </div>
                     <div>
@@ -2221,11 +2232,7 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                             </option>
                         ))}
                     </select>
-                    {selectedRegime && (
-                        <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-sm">
-                            <strong>Mention légale:</strong> {selectedRegime.legalMention}
-                        </div>
-                    )}
+
                 </div>
 
                 {/* Invoice Items Table */}
@@ -2364,6 +2371,22 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                     >
                         📄 Générer la Facture (PDF)
                     </button>
+                </div>
+
+                {/* Tax Responsibility Information */}
+                <div className="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                    <h4 className="font-semibold text-gray-900 mb-3">ℹ️ Information sur la responsabilité fiscale</h4>
+                    <div className="space-y-3 text-sm text-gray-700">
+                        <div>
+                            <strong className="text-gray-900">FR:</strong> Responsabilité des informations fiscales — Les informations d'identification (statut, NIF/CIF/SIREN, numéros de TVA, régime fiscal, taux de TVA, IRPF/withholding) sont déclarées et validées par la créatrice. L'agence ne fournit pas de conseil fiscal et décline toute responsabilité quant à l'exactitude de ces informations et à l'application des taux/mentions légales. La créatrice demeure seule responsable de la conformité de sa facturation et de ses obligations fiscales et sociales.
+                        </div>
+                        <div>
+                            <strong className="text-gray-900">ES:</strong> Responsabilidad sobre datos fiscales — La información (estatus, NIF/CIF, números de IVA, régimen fiscal, tipos de IVA, IRPF/retención) es declarada y validada por la creadora. La agencia no presta asesoramiento fiscal y declina toda responsabilidad sobre la exactitud y la aplicación de tipos/leyendas. La creadora es única responsable del cumplimiento de su facturación y de sus obligaciones fiscales y sociales.
+                        </div>
+                        <div>
+                            <strong className="text-gray-900">EN:</strong> Tax information responsibility — All tax data (status, tax/VAT IDs, VAT regimes, VAT rates, withholding) are provided and confirmed by the creator. The agency does not provide tax advice and accepts no liability for the accuracy or application of such data. The creator remains solely responsible for invoicing compliance and all tax/social obligations.
+                        </div>
+                    </div>
                 </div>
             </div>
 
