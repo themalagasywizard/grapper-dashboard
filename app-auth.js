@@ -582,7 +582,7 @@ const Profile = ({ user, campaigns }) => {
                     <div className="flex-1">
                         <h1 className="text-2xl font-bold text-gray-900">{user.name}</h1>
                         <p className="text-gray-600 mb-2">{user.email}</p>
-                        <p className="text-sm text-gray-500">Member since {new Date(user.joinDate).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+
                         
                         <div className="mt-4 flex flex-wrap gap-2">
                             <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full">
