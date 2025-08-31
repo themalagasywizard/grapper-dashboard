@@ -113,6 +113,31 @@ const translations = {
         agentAddress: "Agent Address",
         generateInvoice: "Generate & Preview Invoice",
         invoiceDescription: "Campaign Collaboration Services",
+
+        // Invoice Generator specific
+        billingInformation: "Billing Information",
+        name: "Name",
+        address: "Address",
+        location: "Location",
+        siret: "SIRET",
+        vat: "VAT",
+        notSpecified: "Not specified",
+        invoiceNumberLabel: "Invoice Number",
+        brand: "Brand",
+        brandPlaceholder: "Brand name",
+        billingDate: "Billing Date",
+        dateAutoSet: "Date is automatically set to today",
+        vatRegime: "VAT Regime",
+        articles: "Articles",
+        addArticle: "Add",
+        removeLastArticle: "Remove last",
+        totalHT: "Total HT",
+        totalVAT: "Total VAT",
+        totalTTC: "Total TTC",
+        taxResponsibility: "Tax Information Responsibility",
+        confirmTaxInfo: "I confirm that the tax information entered is accurate and that I assume full responsibility for the application of rates.",
+        confirmTaxCheckbox: "I confirm that I have verified the accuracy of the tax information",
+
         toolbox: "Toolbox",
         toolboxIntro: "Daily resources available to you:",
         noTools: "No tools available for your account yet.",
@@ -222,6 +247,31 @@ const translations = {
         agentAddress: "Adresse de l'agent",
         generateInvoice: "Générer et prévisualiser la facture",
         invoiceDescription: "Services de collaboration de campagne",
+
+        // Invoice Generator specific
+        billingInformation: "Informations de facturation",
+        name: "Nom",
+        address: "Adresse",
+        location: "Localisation",
+        siret: "SIRET",
+        vat: "TVA",
+        notSpecified: "Non spécifié",
+        invoiceNumberLabel: "Numéro de facture",
+        brand: "Marque",
+        brandPlaceholder: "Nom de la marque",
+        billingDate: "Date de facturation",
+        dateAutoSet: "La date est automatiquement définie à aujourd'hui",
+        vatRegime: "Régime TVA",
+        articles: "Articles",
+        addArticle: "Ajouter",
+        removeLastArticle: "Supprimer le dernier",
+        totalHT: "Total HT",
+        totalVAT: "Total TVA",
+        totalTTC: "Total TTC",
+        taxResponsibility: "Responsabilité fiscale",
+        confirmTaxInfo: "Je confirme que les informations fiscales saisies sont exactes et que j'assume l'entière responsabilité de l'application des taux.",
+        confirmTaxCheckbox: "Je confirme avoir vérifié l'exactitude des informations fiscales",
+
         toolbox: "Boîte à outils",
         toolboxIntro: "Ressources quotidiennes disponibles :",
         noTools: "Aucun outil disponible pour votre compte pour le moment.",
@@ -957,11 +1007,6 @@ const Navigation = ({ user, onLogout, currentTab, setCurrentTab, userCampaigns, 
                         
                         <div className="text-right hidden sm:block">
                             <span className="text-gray-700 block">{t('welcome')}, {formatUsername(user.name)}</span>
-                            {lastUpdated && (
-                                <span className="text-xs text-gray-500">
-                                    {t('lastUpdated')}: {new Date(lastUpdated).toLocaleTimeString()}
-                                </span>
-                            )}
                         </div>
                         
                         <button 
@@ -2161,15 +2206,15 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                 {/* User Billing Information Display */}
                 {userBillingData && (
                     <div className="mb-6 p-4 bg-blue-50 rounded-lg">
-                        <h3 className="font-semibold text-blue-900 mb-2">Informations de facturation</h3>
+                        <h3 className="font-semibold text-blue-900 mb-2">{t('billingInformation')}</h3>
                         <div className="text-sm text-blue-800">
-                            <div><strong>Nom:</strong> {userBillingData.prenom && userBillingData.nom ? `${userBillingData.prenom} ${userBillingData.nom}` : userBillingData.companyName || 'Non spécifié'}</div>
-                            <div><strong>Adresse:</strong> {userBillingData.address || 'Non spécifiée'}</div>
+                            <div><strong>{t('name')}:</strong> {userBillingData.prenom && userBillingData.nom ? `${userBillingData.prenom} ${userBillingData.nom}` : userBillingData.companyName || t('notSpecified')}</div>
+                            <div><strong>{t('address')}:</strong> {userBillingData.address || t('notSpecified')}</div>
                             {userBillingData.postalCode || userBillingData.city || userBillingData.country ? (
-                                <div><strong>Localisation:</strong> {[userBillingData.postalCode, userBillingData.city, userBillingData.country].filter(Boolean).join(' ')}</div>
+                                <div><strong>{t('location')}:</strong> {[userBillingData.postalCode, userBillingData.city, userBillingData.country].filter(Boolean).join(' ')}</div>
                             ) : null}
-                            {userBillingData.siret && <div><strong>SIRET:</strong> {userBillingData.siret}</div>}
-                            {userBillingData.tva && <div><strong>TVA:</strong> {userBillingData.tva}</div>}
+                            {userBillingData.siret && <div><strong>{t('siret')}:</strong> {userBillingData.siret}</div>}
+                            {userBillingData.tva && <div><strong>{t('vat')}:</strong> {userBillingData.tva}</div>}
                         </div>
                     </div>
                 )}
@@ -2177,7 +2222,7 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                 {/* Invoice Basic Information */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Numéro de facture</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('invoiceNumberLabel')}</label>
                         <input
                             type="text"
                             value={invoiceData.invoiceNumber}
@@ -2187,23 +2232,23 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Marque</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('brand')}</label>
                         <input
                             type="text"
                             value={invoiceData.marque}
                             onChange={(e) => handleInvoiceChange({ target: { name: 'marque', value: e.target.value } })}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            placeholder="Nom de la marque"
+                            placeholder={t('brandPlaceholder')}
                         />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Date de facturation</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('billingDate')}</label>
                         <input
                             type="date"
                             value={invoiceData.date}
                             readOnly
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed"
-                            title="La date est automatiquement définie à aujourd'hui"
+                            title={t('dateAutoSet')}
                         />
 
                     </div>
@@ -2211,7 +2256,7 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
 
                 {/* TVA Regime Selection */}
                 <div className="mb-6">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Régime TVA</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t('vatRegime')}</label>
                     <select
                         value={invoiceData.selectedRegime}
                         onChange={handleRegimeChange}
@@ -2229,14 +2274,14 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                 {/* Invoice Items Table */}
                 <div className="mb-6">
                     <div className="flex justify-between items-center mb-3">
-                        <h3 className="text-lg font-semibold text-gray-900">Articles</h3>
+                        <h3 className="text-lg font-semibold text-gray-900">{t('articles')}</h3>
                         <div className="flex gap-2">
                             <button
                                 type="button"
                                 onClick={addItem}
                                 className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700"
                             >
-                                + Ajouter
+                                + {t('addArticle')}
                             </button>
                             {invoiceData.items.length > 1 && (
                                 <button
@@ -2244,7 +2289,7 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                                     onClick={() => removeItem(invoiceData.items.length - 1)}
                                     className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700"
                                 >
-                                    Supprimer le dernier
+                                    {t('removeLastArticle')}
                                 </button>
                             )}
                         </div>
@@ -2318,15 +2363,15 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                     <div className="mt-4 flex justify-end">
                         <div className="w-64">
                             <div className="flex justify-between py-1 border-b">
-                                <span>Total HT:</span>
+                                <span>{t('totalHT')}:</span>
                                 <span>{subtotal.toFixed(2)} €</span>
                             </div>
                             <div className="flex justify-between py-1 border-b">
-                                <span>Total TVA:</span>
+                                <span>{t('totalVAT')}:</span>
                                 <span>{tvaAmount.toFixed(2)} €</span>
                             </div>
                             <div className="flex justify-between py-2 font-bold text-lg border-b-2 border-gray-400">
-                                <span>Total TTC:</span>
+                                <span>{t('totalTTC')}:</span>
                                 <span>{totalTTC.toFixed(2)} €</span>
                             </div>
                         </div>
@@ -2335,9 +2380,9 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
 
                 {/* Legal Disclaimer and Confirmation */}
                 <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                    <h4 className="font-semibold text-red-900 mb-2">⚠️ Responsabilité fiscale</h4>
+                    <h4 className="font-semibold text-red-900 mb-2">⚠️ {t('taxResponsibility')}</h4>
                     <p className="text-sm text-red-800 mb-3">
-                        Je confirme que les informations fiscales saisies sont exactes et que j'assume l'entière responsabilité de l'application des taux et mentions.
+                        {t('confirmTaxInfo')}
                     </p>
                     <label className="flex items-center">
                         <input
@@ -2347,7 +2392,7 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                             className="mr-2"
                         />
                         <span className="text-sm text-red-800">
-                            Je confirme avoir vérifié l'exactitude des informations fiscales
+                            {t('confirmTaxCheckbox')}
                         </span>
                     </label>
                 </div>
