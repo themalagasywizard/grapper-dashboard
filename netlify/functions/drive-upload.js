@@ -90,10 +90,34 @@ exports.handler = async (event) => {
       if (!email || !filename || !dataBase64) {
         return { statusCode: 400, headers, body: JSON.stringify({ error: 'Missing email, filename or data' }) };
       }
+      
+      // Add file size validation to prevent issues with large files
+      if (dataBase64.length > 10 * 1024 * 1024) { // 10MB base64 limit (roughly 7.5MB original file)
+        return { 
+          statusCode: 413, 
+          headers, 
+          body: JSON.stringify({ error: 'File too large. Maximum size is 7.5MB.' }) 
+        };
+      }
+      
       const folder = await ensureUserFolder(email);
+      
+      // Add better error handling for base64 decoding
+      let buffer;
+      try {
+        buffer = Buffer.from(dataBase64, 'base64');
+      } catch (decodeError) {
+        console.error('Base64 decode error:', decodeError);
+        return { 
+          statusCode: 400, 
+          headers, 
+          body: JSON.stringify({ error: 'Invalid file data format' }) 
+        };
+      }
+      
       const media = {
         mimeType: mimeType || 'application/octet-stream',
-        body: Readable.from(Buffer.from(dataBase64, 'base64')),
+        body: Readable.from(buffer),
       };
       
 

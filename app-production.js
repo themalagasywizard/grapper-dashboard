@@ -2443,8 +2443,18 @@ const DriveUploader = ({ user }) => {
         setUploading(true);
         setMessage('');
         try {
-            const arrayBuffer = await file.arrayBuffer();
-            const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+            // Use FileReader for more reliable base64 encoding, especially on mobile
+            const base64 = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    // Remove the data URL prefix (e.g., "data:image/jpeg;base64,")
+                    const result = reader.result.split(',')[1];
+                    resolve(result);
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+            
             const res = await fetch('/.netlify/functions/drive-upload', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -2463,6 +2473,7 @@ const DriveUploader = ({ user }) => {
                 setMessage('Upload failed');
             }
         } catch (e) {
+            console.error('Upload error:', e);
             setMessage('Upload failed');
         } finally {
             setUploading(false);
