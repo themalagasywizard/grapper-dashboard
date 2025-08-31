@@ -1844,7 +1844,7 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
         invoiceWindow.document.write(`
             <html>
             <head>
-                <title>${invoiceData.invoiceNumber}${invoiceData.marque ? ' - ' + invoiceData.marque : ''} - ${userName}</title>
+                <title>${invoiceData.invoiceNumber}${invoiceData.marque ? ' - ' + invoiceData.marque : ''}</title>
                 <style>
                     @media screen {
                         body {
@@ -2012,11 +2012,13 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                     .total-row.final { border-bottom: 2px solid #333; font-weight: bold; }
                     .legal-mention {
                         margin: 20px 0;
-                        padding: 15px;
-                        background: #fff3cd;
-                        border: 1px solid #ffeaa7;
-                        border-radius: 5px;
-                        font-size: 11px;
+                        padding: 0;
+                        background: transparent;
+                        border: none;
+                        border-radius: 0;
+                        font-size: 12px;
+                        font-style: italic;
+                        color: #666;
                     }
                     .disclaimers {
                         margin-top: 30px;
@@ -2060,7 +2062,7 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                     <!-- Invoice Title -->
                     <div style="text-align: center; margin-bottom: 20px; padding: 15px; background: #f8f9fa; border-radius: 5px;">
                         <h1 style="margin: 0; font-size: 24px; font-weight: bold; color: #333;">
-                            ${invoiceData.invoiceNumber}${invoiceData.marque ? ' - ' + invoiceData.marque : ''} - ${userName}
+                            ${invoiceData.invoiceNumber}${invoiceData.marque ? ' - ' + invoiceData.marque : ''}
                         </h1>
                     </div>
 
@@ -2132,18 +2134,7 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                         <strong>Mention légale:</strong> ${selectedRegime?.legalMention || 'TVA non applicable'}
                     </div>
 
-                    <!-- Disclaimers -->
-                    <div class="disclaimers">
-                        <div style="margin-bottom: 15px;">
-                            <strong>FR:</strong> Responsabilité des informations fiscales — Les informations d'identification (statut, NIF/CIF/SIREN, numéros de TVA, régime fiscal, taux de TVA, IRPF/withholding) sont déclarées et validées par la créatrice. L'agence ne fournit pas de conseil fiscal et décline toute responsabilité quant à l'exactitude de ces informations et à l'application des taux/mentions légales. La créatrice demeure seule responsable de la conformité de sa facturation et de ses obligations fiscales et sociales.
-                        </div>
-                        <div style="margin-bottom: 15px;">
-                            <strong>ES:</strong> Responsabilidad sobre datos fiscales — La información (estatus, NIF/CIF, números de IVA, régimen fiscal, tipos de IVA, IRPF/retención) es declarada y validada por la creadora. La agencia no presta asesoramiento fiscal y declina toda responsabilidad sobre la exactitud y la aplicación de tipos/leyendas. La creadora es única responsable del cumplimiento de su facturación y de sus obligaciones fiscales y sociales.
-                        </div>
-                        <div>
-                            <strong>EN:</strong> Tax information responsibility — All tax data (status, tax/VAT IDs, VAT regimes, VAT rates, withholding) are provided and confirmed by the creator. The agency does not provide tax advice and accepts no liability for the accuracy or application of such data. The creator remains solely responsible for invoicing compliance and all tax/social obligations.
-                        </div>
-                    </div>
+
 
                     <!-- Banking Details -->
                     <div style="margin-top: 30px; padding: 15px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 5px;">
