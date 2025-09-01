@@ -24,7 +24,7 @@ exports.handler = async (event, context) => {
         const LOGIN_RANGE = process.env.GOOGLE_SHEETS_LOGIN_RANGE || 'Mail!A1:B2000'; // Forcing A:B to ensure both columns are read
         const TOOLBOX_RANGE = process.env.GOOGLE_SHEETS_TOOLBOX_RANGE || "'Boite à Outil'!A1:ZZ2000";
         const EVENTS_RANGE = process.env.GOOGLE_SHEETS_EVENTS_RANGE || 'Events!A1:Z2000';
-        const USER_BILLING_RANGE = process.env.GOOGLE_SHEETS_USER_BILLING_RANGE || "'Adresse Facturation Talents'!A1:K2000";
+        const USER_BILLING_RANGE = process.env.GOOGLE_SHEETS_USER_BILLING_RANGE || "'Adresse Facturation Talents'!A1:J2000";
         const AGENCY_BILLING_RANGE = process.env.GOOGLE_SHEETS_AGENCY_BILLING_RANGE || "'Adresse Facturation Grapper'!A1:A10";
 
         // Validate environment variables
@@ -131,16 +131,16 @@ exports.handler = async (event, context) => {
         if (userBillingValues.length > 0) {
             const rows = userBillingValues.slice(1); // Skip header row
             userBillingData = rows.map(row => ({
-                email: (row[0] || '').toString().trim(),
-                prenom: (row[1] || '').toString().trim(), // Prénom (first name)
-                nom: (row[2] || '').toString().trim(), // Nom (last name)
-                companyName: (row[3] || '').toString().trim(),
-                address: (row[4] || '').toString().trim(),
-                postalCode: (row[5] || '').toString().trim(),
-                city: (row[6] || '').toString().trim(),
-                banque: (row[7] || '').toString().trim(), // Column H - Bank name  
-                iban: (row[8] || '').toString().trim(), // Column I - IBAN  
-                swiftBic: (row[9] || '').toString().trim() // Column J - Swift/BIC
+                email: (row[0] || '').toString().trim(), // Column A - User email
+                prenom: (row[1] || '').toString().trim(), // Column B - Prénom (first name)
+                nom: (row[2] || '').toString().trim(), // Column C - Nom (last name)
+                address: (row[3] || '').toString().trim(), // Column D - Adresse (billing address)
+                postalCode: (row[4] || '').toString().trim(), // Column E - CP (postal code)
+                city: (row[5] || '').toString().trim(), // Column F - Ville (city)
+                country: (row[6] || '').toString().trim(), // Column G - Pays (country)
+                banque: (row[7] || '').toString().trim(), // Column H - Banque (bank name)
+                iban: (row[8] || '').toString().trim(), // Column I - IBAN
+                swiftBic: (row[9] || '').toString().trim() // Column J - SWIFT/BIC
             })).filter(user => user.email && user.email.includes('@'));
         }
 

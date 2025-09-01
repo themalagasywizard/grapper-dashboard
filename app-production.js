@@ -1882,9 +1882,10 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
         const invoiceWindow = window.open('', '_blank');
         const userName = userBillingData?.prenom && userBillingData?.nom
             ? `${userBillingData.prenom} ${userBillingData.nom}`
-            : userBillingData?.companyName || user.name;
+            : user.name;
         const userAddress = userBillingData?.address || '';
-        const userLocation = userBillingData ? `${userBillingData.postalCode} ${userBillingData.city} ${userBillingData.country}` : '';
+        const userLocation = userBillingData ? `${userBillingData.city} ${userBillingData.postalCode}` : '';
+        const userCountry = userBillingData?.country || '';
 
         invoiceWindow.document.write(`
             <html>
@@ -2115,8 +2116,9 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                     <div class="header-section">
                         <div class="user-details">
                             <strong>${userName}</strong><br/>
-                            ${userBillingData?.address || ''}<br/>
-                            ${userBillingData ? `${userBillingData.postalCode} ${userBillingData.city} ${userBillingData.country}` : ''}<br/>
+                            ${userAddress}<br/>
+                            ${userLocation}<br/>
+                            ${userCountry}<br/>
                             ${userBillingData?.siret ? `SIRET: ${userBillingData.siret}<br/>` : ''}
                             ${userBillingData?.tva ? `TVA: ${userBillingData.tva}<br/>` : ''}
                         </div>
@@ -2246,11 +2248,12 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                     <div className="mb-6 p-4 bg-blue-50 rounded-lg">
                         <h3 className="font-semibold text-blue-900 mb-2">{t('billingInformation')}</h3>
                         <div className="text-sm text-blue-800">
-                            <div><strong>{t('name')}:</strong> {userBillingData.prenom && userBillingData.nom ? `${userBillingData.prenom} ${userBillingData.nom}` : userBillingData.companyName || t('notSpecified')}</div>
+                            <div><strong>{t('name')}:</strong> {userBillingData.prenom && userBillingData.nom ? `${userBillingData.prenom} ${userBillingData.nom}` : t('notSpecified')}</div>
                             <div><strong>{t('address')}:</strong> {userBillingData.address || t('notSpecified')}</div>
-                            {userBillingData.postalCode || userBillingData.city || userBillingData.country ? (
-                                <div><strong>{t('location')}:</strong> {[userBillingData.postalCode, userBillingData.city, userBillingData.country].filter(Boolean).join(' ')}</div>
+                            {userBillingData.city || userBillingData.postalCode ? (
+                                <div><strong>{t('location')}:</strong> {[userBillingData.city, userBillingData.postalCode].filter(Boolean).join(' ')}</div>
                             ) : null}
+                            {userBillingData.country && <div><strong>{t('country')}:</strong> {userBillingData.country}</div>}
                             {userBillingData.siret && <div><strong>{t('siret')}:</strong> {userBillingData.siret}</div>}
                             {userBillingData.tva && <div><strong>{t('vat')}:</strong> {userBillingData.tva}</div>}
                         </div>
