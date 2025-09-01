@@ -1966,37 +1966,83 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                         .save-pdf { background-color: #2563eb; color: white; }
                     }
                     @media print {
-                        body {
+                        /* Core print settings - ensure single page */
+                        @page {
+                            size: A4;
                             margin: 0;
-                            padding: 0;
-                            height: 297mm;
-                            width: 210mm;
                             -webkit-print-color-adjust: exact;
                             print-color-adjust: exact;
                         }
-                        .no-print { display: none; }
-                        .page-break { page-break-before: always; }
+
+                        /* Hide browser UI elements */
+                        html, body {
+                            margin: 0 !important;
+                            padding: 0 !important;
+                            height: 297mm !important;
+                            width: 210mm !important;
+                            -webkit-print-color-adjust: exact !important;
+                            print-color-adjust: exact !important;
+                            background: white !important;
+                            overflow: visible !important;
+                        }
+
+                        /* Hide all non-essential elements */
+                        .no-print, .button-container, .action-button {
+                            display: none !important;
+                        }
+
+                        /* Prevent page breaks - force single page */
                         .invoice-container {
+                            margin: 0 !important;
                             padding: 15mm !important;
                             max-width: 210mm !important;
+                            width: 210mm !important;
+                            page-break-inside: avoid !important;
+                            page-break-before: avoid !important;
+                            page-break-after: avoid !important;
+                            box-shadow: none !important;
+                            border: none !important;
                         }
-                        .header-section {
-                            margin-bottom: 20px !important;
+
+                        /* Ensure all content sections stay together */
+                        .header-section, .invoice-meta, .invoice-table,
+                        .totals-section, .legal-mention, .banking-details {
+                            page-break-inside: avoid !important;
+                            page-break-before: avoid !important;
+                            page-break-after: avoid !important;
                         }
+
+                        /* Optimize table layout */
                         .invoice-table {
                             font-size: 10px !important;
                             margin: 15px 0 !important;
+                            width: 100% !important;
+                            page-break-inside: avoid !important;
                         }
+
                         .invoice-table th, .invoice-table td {
                             padding: 4px 6px !important;
                         }
+
+                        /* Compact text elements */
                         .legal-mention, .disclaimers {
                             font-size: 8px !important;
                             line-height: 1.2 !important;
                             margin: 10px 0 !important;
                         }
+
                         .banking-details {
                             font-size: 9px !important;
+                        }
+
+                        /* Header section layout */
+                        .header-section {
+                            margin-bottom: 20px !important;
+                        }
+
+                        /* Remove any existing page-break rules */
+                        .page-break {
+                            page-break-before: avoid !important;
                         }
                     }
                     .invoice-container {
@@ -2082,20 +2128,42 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                 </style>
                                 <script>
                     function savePDF() {
-                        // Hide buttons before printing/saving
-                        document.querySelector('.button-container').style.display = 'none';
+                        // Store original styles for restoration
+                        const originalBodyHeight = document.body.style.height;
+                        const originalBodyOverflow = document.body.style.overflow;
+                        const buttonContainer = document.querySelector('.button-container');
+                        const originalButtonDisplay = buttonContainer ? buttonContainer.style.display : '';
 
-                        // Force single page layout for mobile
+                        // Hide buttons immediately to prevent them from appearing in PDF
+                        if (buttonContainer) {
+                            buttonContainer.style.display = 'none';
+                        }
+
+                        // Apply mobile-optimized print styles
                         document.body.style.height = '297mm';
-                        document.body.style.overflow = 'hidden';
+                        document.body.style.overflow = 'visible'; // Changed from 'hidden' to 'visible' for better mobile compatibility
+                        document.body.style.margin = '0';
+                        document.body.style.padding = '0';
 
-                        // Trigger print dialog (mobile browsers will offer PDF save)
-                        window.print();
+                        // Small delay to ensure styles are applied before printing
+                        setTimeout(() => {
+                            // Trigger print dialog
+                            window.print();
 
-                        // Restore original layout
-                        document.querySelector('.button-container').style.display = 'flex';
-                        document.body.style.height = '';
-                        document.body.style.overflow = '';
+                            // Restore original layout after print dialog closes
+                            setTimeout(() => {
+                                // Restore original styles
+                                document.body.style.height = originalBodyHeight;
+                                document.body.style.overflow = originalBodyOverflow;
+                                document.body.style.margin = '';
+                                document.body.style.padding = '';
+
+                                // Restore button visibility
+                                if (buttonContainer) {
+                                    buttonContainer.style.display = originalButtonDisplay || 'flex';
+                                }
+                            }, 1000);
+                        }, 100);
                     }
                 </script>
             </head>
