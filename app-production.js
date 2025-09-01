@@ -2185,12 +2185,49 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                     <div style="margin-top: 30px; padding: 15px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 5px;">
                         <h4 style="margin: 0 0 10px 0; font-size: 14px; font-weight: bold;">Coordonnées bancaires:</h4>
                         <div style="font-size: 12px; line-height: 1.5;">
-                            Banque: [Nom de la banque]<br/>
-                            IBAN: [IBAN]<br/>
-                            SWIFT/BIC: [BIC]
+                            ${userBillingData?.bankName ? `Banque: ${userBillingData.bankName}<br/>` : ''}
+                            ${userBillingData?.iban ? `IBAN: ${userBillingData.iban}<br/>` : ''}
+                            ${userBillingData?.swiftBic ? `SWIFT/BIC: ${userBillingData.swiftBic}` : ''}
                         </div>
                     </div>
                 </div>
+
+                <script>
+                    function savePDF() {
+                        // Hide the button container before printing
+                        const buttonContainer = document.querySelector('.button-container');
+                        if (buttonContainer) {
+                            buttonContainer.style.display = 'none';
+                        }
+
+                        // Add print-specific styles to ensure single page with no metadata
+                        const style = document.createElement('style');
+                        style.textContent = '@media print { ' +
+                            'body { margin: 0; padding: 0; -webkit-print-color-adjust: exact; color-adjust: exact; } ' +
+                            '.no-print { display: none !important; } ' +
+                            '.invoice-container { margin: 0; padding: 20mm !important; max-width: none !important; box-shadow: none !important; border: none !important; } ' +
+                            '@page { size: A4; margin: 0; } ' +
+                            '.invoice-container { page-break-inside: avoid; } ' +
+                            '@page :first { margin-top: 0; } ' +
+                            '@page :left { margin-left: 0; } ' +
+                            '@page :right { margin-right: 0; } ' +
+                            '}';
+                        document.head.appendChild(style);
+
+                        // Use window.print() for better browser compatibility
+                        window.print();
+
+                        // Clean up after printing
+                        setTimeout(() => {
+                            if (buttonContainer) {
+                                buttonContainer.style.display = 'flex';
+                            }
+                            if (style.parentNode) {
+                                style.parentNode.removeChild(style);
+                            }
+                        }, 1000);
+                    }
+                </script>
             </body>
             </html>
         `);

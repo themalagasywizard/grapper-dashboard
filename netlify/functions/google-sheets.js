@@ -138,7 +138,10 @@ exports.handler = async (event, context) => {
                 address: (row[4] || '').toString().trim(),
                 postalCode: (row[5] || '').toString().trim(),
                 city: (row[6] || '').toString().trim(),
-                country: (row[7] || '').toString().trim()
+                country: (row[7] || '').toString().trim(),
+                bankName: (row[8] || '').toString().trim(), // Column H - Banque
+                iban: (row[9] || '').toString().trim(), // Column I - IBAN
+                swiftBic: (row[10] || '').toString().trim() // Column J - SWIFT/BIC
             })).filter(user => user.email && user.email.includes('@'));
         }
 
