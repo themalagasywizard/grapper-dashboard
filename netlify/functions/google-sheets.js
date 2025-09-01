@@ -24,7 +24,7 @@ exports.handler = async (event, context) => {
         const LOGIN_RANGE = process.env.GOOGLE_SHEETS_LOGIN_RANGE || 'Mail!A1:B2000'; // Forcing A:B to ensure both columns are read
         const TOOLBOX_RANGE = process.env.GOOGLE_SHEETS_TOOLBOX_RANGE || "'Boite à Outil'!A1:ZZ2000";
         const EVENTS_RANGE = process.env.GOOGLE_SHEETS_EVENTS_RANGE || 'Events!A1:Z2000';
-        const USER_BILLING_RANGE = process.env.GOOGLE_SHEETS_USER_BILLING_RANGE || "'Adresse Facturation Talents'!A1:G2000";
+        const USER_BILLING_RANGE = process.env.GOOGLE_SHEETS_USER_BILLING_RANGE || "'Adresse Facturation Talents'!A1:J2000";
         const AGENCY_BILLING_RANGE = process.env.GOOGLE_SHEETS_AGENCY_BILLING_RANGE || "'Adresse Facturation Grapper'!A1:A10";
 
         // Validate environment variables
@@ -130,19 +130,25 @@ exports.handler = async (event, context) => {
         let userBillingData = [];
         if (userBillingValues.length > 0) {
             const rows = userBillingValues.slice(1); // Skip header row
-            userBillingData = rows.map(row => ({
-                email: (row[0] || '').toString().trim(),
-                prenom: (row[1] || '').toString().trim(), // Prénom (first name)
-                nom: (row[2] || '').toString().trim(), // Nom (last name)
-                companyName: (row[3] || '').toString().trim(),
-                address: (row[4] || '').toString().trim(),
-                postalCode: (row[5] || '').toString().trim(),
-                city: (row[6] || '').toString().trim(),
-                country: (row[7] || '').toString().trim(),
-                bankName: (row[8] || '').toString().trim(), // Column H - Banque
-                iban: (row[9] || '').toString().trim(), // Column I - IBAN
-                swiftBic: (row[10] || '').toString().trim() // Column J - SWIFT/BIC
-            })).filter(user => user.email && user.email.includes('@'));
+            userBillingData = rows.map((row, index) => {
+                const userData = {
+                    email: (row[0] || '').toString().trim(),
+                    prenom: (row[1] || '').toString().trim(), // Prénom (first name)
+                    nom: (row[2] || '').toString().trim(), // Nom (last name)
+                    companyName: (row[3] || '').toString().trim(),
+                    address: (row[4] || '').toString().trim(),
+                    postalCode: (row[5] || '').toString().trim(),
+                    city: (row[6] || '').toString().trim(),
+                    country: (row[7] || '').toString().trim(),
+                    bankName: (row[8] || '').toString().trim(), // Column H - Banque (index 8)
+                    iban: (row[9] || '').toString().trim(), // Column I - IBAN (index 9)
+                    swiftBic: (row[10] || '').toString().trim() // Column J - SWIFT/BIC (index 10)
+                };
+
+
+
+                return userData;
+            }).filter(user => user.email && user.email.includes('@'));
         }
 
         // Process agency billing data (Adresse Facturation Grapper)

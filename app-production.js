@@ -2185,9 +2185,10 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                     <div style="margin-top: 30px; padding: 15px; background: #f8f9fa; border: 1px solid #ddd; border-radius: 5px;">
                         <h4 style="margin: 0 0 10px 0; font-size: 14px; font-weight: bold;">Coordonnées bancaires:</h4>
                         <div style="font-size: 12px; line-height: 1.5;">
-                            ${userBillingData?.bankName ? `Banque: ${userBillingData.bankName}<br/>` : ''}
-                            ${userBillingData?.iban ? `IBAN: ${userBillingData.iban}<br/>` : ''}
-                            ${userBillingData?.swiftBic ? `SWIFT/BIC: ${userBillingData.swiftBic}` : ''}
+                            ${userBillingData && userBillingData.bankName && userBillingData.bankName.trim() !== '' ? `Banque: ${userBillingData.bankName}<br/>` : ''}
+                            ${userBillingData && userBillingData.iban && userBillingData.iban.trim() !== '' ? `IBAN: ${userBillingData.iban}<br/>` : ''}
+                            ${userBillingData && userBillingData.swiftBic && userBillingData.swiftBic.trim() !== '' ? `SWIFT/BIC: ${userBillingData.swiftBic}` : ''}
+                            ${(!userBillingData || (!userBillingData.bankName && !userBillingData.iban && !userBillingData.swiftBic)) ? 'Aucune information bancaire disponible' : ''}
                         </div>
                     </div>
                 </div>
