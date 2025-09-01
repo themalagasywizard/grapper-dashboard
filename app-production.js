@@ -2224,13 +2224,13 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
 
                                 // Optimize for single page PDF
                                 const style = document.createElement('style');
-                                style.textContent = `
-                                    @media print {
-                                        body { margin: 0; padding: 15mm; }
-                                        .no-print { display: none !important; }
-                                        @page { size: A4; margin: 0; }
-                                    }
-                                `;
+                                style.textContent = '\\n' +
+                                    '                                    @media print {\\n' +
+                                    '                                        body { margin: 0; padding: 15mm; }\\n' +
+                                    '                                        .no-print { display: none !important; }\\n' +
+                                    '                                        @page { size: A4; margin: 0; }\\n' +
+                                    '                                    }\\n' +
+                                    '                                ';
                                 document.head.appendChild(style);
                             });
                         }
@@ -2298,7 +2298,7 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                             const url = URL.createObjectURL(blob);
                             const a = document.createElement('a');
                             a.href = url;
-                            a.download = '${invoiceData.invoiceNumber || "invoice"}.pdf';
+                            a.download = invoiceData.invoiceNumber + '.pdf';
 
                             // Trigger download
                             document.body.appendChild(a);
