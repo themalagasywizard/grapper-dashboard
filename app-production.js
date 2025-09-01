@@ -1897,8 +1897,10 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                 <meta name="format-detection" content="telephone=no">
                 <meta name="apple-mobile-web-app-capable" content="yes">
                 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-                <!-- Force PDF download on iOS share -->
-                <meta http-equiv="Content-Type" content="application/pdf">
+                <!-- Force PDF detection on iOS share -->
+                ${isIOSDevice ? '<meta http-equiv="Content-Type" content="application/pdf">' : ''}
+                ${isIOSDevice ? '<meta name="apple-mobile-web-app-title" content="' + invoiceData.invoiceNumber + '.pdf">' : ''}
+                ${isIOSDevice ? '<meta name="application-name" content="' + invoiceData.invoiceNumber + '.pdf">' : ''}
                 <meta name="robots" content="noindex,nofollow">
                 <style>
                     @media screen {
@@ -2196,45 +2198,37 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                 </style>
                                 <script>
                     // iOS PDF Optimization Script
+                    ${isIOSDevice ? `
                     (function() {
-                        // Detect iOS devices
-                        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-                        const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+                        // Apply PDF-friendly styles immediately for iOS Safari
+                        document.addEventListener('DOMContentLoaded', function() {
+                            const body = document.body;
+                            const invoiceContainer = document.querySelector('.invoice-container');
 
-                        if (isIOS && isSafari) {
-                            // Apply PDF-friendly styles immediately for iOS Safari
-                            document.addEventListener('DOMContentLoaded', function() {
-                                const body = document.body;
-                                const invoiceContainer = document.querySelector('.invoice-container');
+                            // Apply iOS-specific optimizations
+                            body.style.webkitTextSizeAdjust = '100%';
+                            body.style.webkitFontSmoothing = 'antialiased';
 
-                                // Apply iOS-specific optimizations
-                                body.style.webkitTextSizeAdjust = '100%';
-                                body.style.webkitFontSmoothing = 'antialiased';
+                            if (invoiceContainer) {
+                                invoiceContainer.style.webkitTransform = 'translateZ(0)';
+                                invoiceContainer.style.transform = 'translateZ(0)';
+                            }
 
-                                if (invoiceContainer) {
-                                    invoiceContainer.style.webkitTransform = 'translateZ(0)';
-                                    invoiceContainer.style.transform = 'translateZ(0)';
-                                }
+                            // Add additional PDF content type indicators
+                            const metaTag = document.createElement('meta');
+                            metaTag.httpEquiv = 'Content-Type';
+                            metaTag.content = 'application/pdf';
+                            document.head.appendChild(metaTag);
 
-                                // Add meta tag to force PDF content type
-                                const metaTag = document.createElement('meta');
-                                metaTag.httpEquiv = 'Content-Type';
-                                metaTag.content = 'application/pdf';
-                                document.head.appendChild(metaTag);
+                            // Set document title to include .pdf extension for better recognition
+                            document.title = '${invoiceData.invoiceNumber}${invoiceData.marque ? ' - ' + invoiceData.marque : ''}.pdf';
 
-                                // Optimize for single page PDF
-                                const style = document.createElement('style');
-                                style.textContent = '\\n' +
-                                    '                                    @media print {\\n' +
-                                    '                                        body { margin: 0; padding: 15mm; }\\n' +
-                                    '                                        .no-print { display: none !important; }\\n' +
-                                    '                                        @page { size: A4; margin: 0; }\\n' +
-                                    '                                    }\\n' +
-                                    '                                ';
-                                document.head.appendChild(style);
-                            });
-                        }
-                    })();
+                            // Optimize for single page PDF
+                            const style = document.createElement('style');
+                            style.textContent = '@media print { body { margin: 0; padding: 15mm; } .no-print { display: none !important; } @page { size: A4; margin: 0; } }';
+                            document.head.appendChild(style);
+                        });
+                    })();` : ''}
 
                     function savePDF() {
                         // Detect iOS devices for special handling
@@ -2312,9 +2306,7 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                 </script>
             </head>
             <body>
-                <div class="no-print button-container">
-                    <button onclick="savePDF()" class="action-button save-pdf">💾 Save as PDF</button>
-                </div>
+                ${!isIOSDevice ? '<div class="no-print button-container"><button onclick="savePDF()" class="action-button save-pdf">💾 Save as PDF</button></div>' : ''}
 
                 <div class="invoice-container">
                     <!-- Invoice Title -->
