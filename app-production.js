@@ -1891,6 +1891,15 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
             <html>
             <head>
                 <title>${invoiceData.invoiceNumber}${invoiceData.marque ? ' - ' + invoiceData.marque : ''}</title>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <!-- iOS PDF Optimization Meta Tags -->
+                <meta name="format-detection" content="telephone=no">
+                <meta name="apple-mobile-web-app-capable" content="yes">
+                <meta name="apple-mobile-web-app-status-bar-style" content="default">
+                <!-- Force PDF download on iOS share -->
+                <meta http-equiv="Content-Type" content="application/pdf">
+                <meta name="robots" content="noindex,nofollow">
                 <style>
                     @media screen {
                         body {
@@ -2125,9 +2134,113 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                         background: #e9ecef;
                         border-radius: 5px;
                     }
+
+                    /* iOS PDF Optimization Styles */
+                    @media print {
+                        body {
+                            margin: 0;
+                            padding: 0;
+                            -webkit-print-color-adjust: exact;
+                            color-adjust: exact;
+                            height: auto;
+                            overflow: visible;
+                        }
+
+                        .invoice-container {
+                            margin: 0;
+                            padding: 15mm;
+                            max-width: none !important;
+                            box-shadow: none !important;
+                            border: none !important;
+                            page-break-inside: avoid;
+                            height: auto;
+                        }
+
+                        .no-print {
+                            display: none !important;
+                        }
+
+                        /* Ensure single page layout */
+                        @page {
+                            size: A4;
+                            margin: 0;
+                        }
+
+                        /* Prevent page breaks within important sections */
+                        .header-section,
+                        .invoice-meta,
+                        .invoice-table,
+                        .payment-section {
+                            page-break-inside: avoid;
+                        }
+
+                        /* Optimize font rendering for PDF */
+                        * {
+                            -webkit-font-smoothing: antialiased;
+                            -moz-osx-font-smoothing: grayscale;
+                        }
+                    }
+
+                    /* iOS Safari specific optimizations */
+                    @supports (-webkit-touch-callout: none) {
+                        body {
+                            -webkit-text-size-adjust: 100%;
+                            -webkit-font-smoothing: antialiased;
+                        }
+
+                        .invoice-container {
+                            -webkit-transform: translateZ(0);
+                            transform: translateZ(0);
+                        }
+                    }
                 </style>
                                 <script>
+                    // iOS PDF Optimization Script
+                    (function() {
+                        // Detect iOS devices
+                        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+                        const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
+                        if (isIOS && isSafari) {
+                            // Apply PDF-friendly styles immediately for iOS Safari
+                            document.addEventListener('DOMContentLoaded', function() {
+                                const body = document.body;
+                                const invoiceContainer = document.querySelector('.invoice-container');
+
+                                // Apply iOS-specific optimizations
+                                body.style.webkitTextSizeAdjust = '100%';
+                                body.style.webkitFontSmoothing = 'antialiased';
+
+                                if (invoiceContainer) {
+                                    invoiceContainer.style.webkitTransform = 'translateZ(0)';
+                                    invoiceContainer.style.transform = 'translateZ(0)';
+                                }
+
+                                // Add meta tag to force PDF content type
+                                const metaTag = document.createElement('meta');
+                                metaTag.httpEquiv = 'Content-Type';
+                                metaTag.content = 'application/pdf';
+                                document.head.appendChild(metaTag);
+
+                                // Optimize for single page PDF
+                                const style = document.createElement('style');
+                                style.textContent = `
+                                    @media print {
+                                        body { margin: 0; padding: 15mm; }
+                                        .no-print { display: none !important; }
+                                        @page { size: A4; margin: 0; }
+                                    }
+                                `;
+                                document.head.appendChild(style);
+                            });
+                        }
+                    })();
+
                     function savePDF() {
+                        // Detect iOS devices for special handling
+                        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+                        const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
                         // Store original styles for restoration
                         const originalBodyHeight = document.body.style.height;
                         const originalBodyOverflow = document.body.style.overflow;
@@ -2141,14 +2254,20 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
 
                         // Apply mobile-optimized print styles
                         document.body.style.height = '297mm';
-                        document.body.style.overflow = 'visible'; // Changed from 'hidden' to 'visible' for better mobile compatibility
+                        document.body.style.overflow = 'visible';
                         document.body.style.margin = '0';
                         document.body.style.padding = '0';
 
                         // Small delay to ensure styles are applied before printing
                         setTimeout(() => {
-                            // Trigger print dialog
-                            window.print();
+                            if (isIOS && isSafari) {
+                                // iOS Safari: Use print() which will trigger share menu with PDF option
+                                // The meta tags and CSS we added will help Safari recognize this as a PDF
+                                window.print();
+                            } else {
+                                // Desktop and other browsers: Use standard print
+                                window.print();
+                            }
 
                             // Restore original layout after print dialog closes
                             setTimeout(() => {
@@ -2164,6 +2283,31 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                                 }
                             }, 1000);
                         }, 100);
+                    }
+
+                    // iOS-specific PDF download helper
+                    function downloadPDFiOS() {
+                        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+
+                        if (isIOS) {
+                            // Create a blob with the current HTML content
+                            const htmlContent = document.documentElement.outerHTML;
+                            const blob = new Blob([htmlContent], { type: 'application/pdf' });
+
+                            // Create a download link
+                            const url = URL.createObjectURL(blob);
+                            const a = document.createElement('a');
+                            a.href = url;
+                            a.download = '${invoiceData.invoiceNumber || "invoice"}.pdf';
+
+                            // Trigger download
+                            document.body.appendChild(a);
+                            a.click();
+                            document.body.removeChild(a);
+
+                            // Clean up
+                            URL.revokeObjectURL(url);
+                        }
                     }
                 </script>
             </head>
