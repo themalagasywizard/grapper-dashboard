@@ -1,0 +1,5 @@
+[33ma5f961b[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m)[m ✅ Fixes Applied to banking details
+[33md4b6cab[m ✅ Banking Details Integration ✅ PDF Generation Improvements
+[33m75c5905[m "Member Since" Text Successfully Removed
+[33m41f2145[m Invoice Generator Internationalization Complete
+[33m209cc3a[m  Invoice Generator Fixes Applied ✅ Clean legal mention: No more yellow background, appears professionally below TOTAL TTC ✅ Generator-only tax info: Tax responsibility text only appears on the generator page, not on the final invoice ✅ Simplified title: Clean format showing only invoice number and brand (when specified) ✅ No breaking changes: All existing functionality preserved Please enter the commit message for your changes. Lines starting

@@ -130,25 +130,19 @@ exports.handler = async (event, context) => {
         let userBillingData = [];
         if (userBillingValues.length > 0) {
             const rows = userBillingValues.slice(1); // Skip header row
-            userBillingData = rows.map((row, index) => {
-                const userData = {
-                    email: (row[0] || '').toString().trim(),
-                    prenom: (row[1] || '').toString().trim(), // Prénom (first name)
-                    nom: (row[2] || '').toString().trim(), // Nom (last name)
-                    companyName: (row[3] || '').toString().trim(),
-                    address: (row[4] || '').toString().trim(),
-                    postalCode: (row[5] || '').toString().trim(),
-                    city: (row[6] || '').toString().trim(),
-                    country: (row[7] || '').toString().trim(),
-                    bankName: (row[8] || '').toString().trim(), // Column H - Banque (index 8)
-                    iban: (row[9] || '').toString().trim(), // Column I - IBAN (index 9)
-                    swiftBic: (row[10] || '').toString().trim() // Column J - SWIFT/BIC (index 10)
-                };
-
-
-
-                return userData;
-            }).filter(user => user.email && user.email.includes('@'));
+            userBillingData = rows.map(row => ({
+                email: (row[0] || '').toString().trim(),
+                prenom: (row[1] || '').toString().trim(), // Prénom (first name)
+                nom: (row[2] || '').toString().trim(), // Nom (last name)
+                companyName: (row[3] || '').toString().trim(),
+                address: (row[4] || '').toString().trim(),
+                postalCode: (row[5] || '').toString().trim(),
+                city: (row[6] || '').toString().trim(),
+                country: (row[7] || '').toString().trim(),
+                banque: (row[8] || '').toString().trim(), // Column H - Bank name
+                iban: (row[9] || '').toString().trim(), // Column I - IBAN
+                swiftBic: (row[10] || '').toString().trim() // Column J - Swift/BIC
+            })).filter(user => user.email && user.email.includes('@'));
         }
 
         // Process agency billing data (Adresse Facturation Grapper)
