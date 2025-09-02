@@ -2060,15 +2060,44 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
             // Generate filename
             const filename = `${invoiceData.invoiceNumber}${invoiceData.marque ? '_' + invoiceData.marque.replace(/\s+/g, '_') : ''}.pdf`;
             
-            // Save PDF - this will open in a new tab on iOS with proper PDF MIME type
+            // Save PDF with proper filename for iOS
             const pdfBlob = pdf.output('blob');
+            
+            // Create a download link with proper filename
+            const downloadLink = document.createElement('a');
             const pdfUrl = URL.createObjectURL(pdfBlob);
             
-            // Open in new tab with proper content type
-            const newTab = window.open();
-            newTab.location.href = pdfUrl;
+            downloadLink.href = pdfUrl;
+            downloadLink.download = filename;
+            downloadLink.style.display = 'none';
             
-            // Clean up after a delay
+            // Add to document, click, and remove
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+            
+            // Also open in new tab for immediate viewing (with better filename approach)
+            try {
+                // Create a new blob with PDF content type for viewing
+                const viewBlob = new Blob([pdfBlob], { type: 'application/pdf' });
+                const viewUrl = URL.createObjectURL(viewBlob);
+                
+                // Open in new tab
+                const newTab = window.open(viewUrl, '_blank');
+                if (newTab) {
+                    // Set the document title to the filename for better identification
+                    newTab.document.title = filename;
+                }
+                
+                // Clean up after a delay
+                setTimeout(() => {
+                    URL.revokeObjectURL(viewUrl);
+                }, 5000);
+            } catch (viewError) {
+                console.log('Could not open PDF in new tab, but download should work:', viewError);
+            }
+            
+            // Clean up the download URL
             setTimeout(() => {
                 URL.revokeObjectURL(pdfUrl);
             }, 1000);
