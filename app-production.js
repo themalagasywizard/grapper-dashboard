@@ -1101,7 +1101,7 @@ const Dashboard = ({ campaigns, events = [], language }) => {
     const upcomingCampaigns = campaigns.filter(c => c.Status === 'Upcoming');
     const thisMonthRevenue = upcomingCampaigns.reduce((sum, c) => sum + c.Revenue, 0);
     
-        // Initialize calendar only once on mount
+    // Initialize calendar only once on mount
     useEffect(() => {
         if (calendarRef.current && !calendarInstance.current && window.FullCalendar) {
             const renderTimeout = setTimeout(() => {
@@ -1109,6 +1109,34 @@ const Dashboard = ({ campaigns, events = [], language }) => {
                 today.setHours(0, 0, 0, 0); // Set to start of today
 
                 const isSmallScreen = window.matchMedia('(max-width: 640px)').matches;
+                
+                // Function to apply mobile optimization
+                const applyMobileOptimization = () => {
+                    try {
+                        const isMobile = window.matchMedia('(max-width: 640px)').matches;
+                        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+                        
+                        if (isMobile || isIOS) {
+                            const toolbar = calendarRef.current?.querySelector?.('.fc-toolbar');
+                            if (toolbar) {
+                                toolbar.style.fontSize = '12px';
+                            }
+                            const buttons = calendarRef.current?.querySelectorAll?.('.fc-button');
+                            if (buttons && buttons.forEach) {
+                                buttons.forEach(btn => {
+                                    btn.style.padding = '4px 6px';
+                                    btn.style.fontSize = '12px';
+                                    btn.style.lineHeight = '1.1';
+                                });
+                            }
+                            const titleEl = calendarRef.current?.querySelector?.('.fc-toolbar-title');
+                            if (titleEl) {
+                                titleEl.style.fontSize = '16px';
+                            }
+                        }
+                    } catch (_) {}
+                };
+                
                 calendarInstance.current = new FullCalendar.Calendar(calendarRef.current, {
                     // Show Calendar by default even on mobile, but allow switching to list
                     initialView: 'dayGridMonth',
@@ -1132,26 +1160,7 @@ const Dashboard = ({ campaigns, events = [], language }) => {
                     expandRows: true,
                     height: 'auto',
                     windowResize: function() {
-                        // Adjust button sizes for mobile each resize
-                        try {
-                            const isMobile = window.matchMedia('(max-width: 640px)').matches;
-                            const toolbar = calendarRef.current?.querySelector?.('.fc-toolbar');
-                            if (toolbar) {
-                                toolbar.style.fontSize = isMobile ? '12px' : '';
-                            }
-                            const buttons = calendarRef.current?.querySelectorAll?.('.fc-button');
-                            if (buttons && buttons.forEach) {
-                                buttons.forEach(btn => {
-                                    btn.style.padding = isMobile ? '4px 6px' : '';
-                                    btn.style.fontSize = isMobile ? '12px' : '';
-                                    btn.style.lineHeight = isMobile ? '1.1' : '';
-                                });
-                            }
-                            const titleEl = calendarRef.current?.querySelector?.('.fc-toolbar-title');
-                            if (titleEl) {
-                                titleEl.style.fontSize = isMobile ? '16px' : '';
-                            }
-                        } catch (_) {}
+                        applyMobileOptimization();
                     },
                     events: function(fetchInfo, successCallback, failureCallback) {
                         // Safely get current view type with fallback
@@ -1304,6 +1313,16 @@ const Dashboard = ({ campaigns, events = [], language }) => {
                 });
 
                 calendarInstance.current.render();
+                
+                // Force immediate mobile optimization on iOS after calendar renders
+                setTimeout(() => {
+                    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+                    const isMobile = window.matchMedia('(max-width: 640px)').matches;
+                    
+                    if (isIOS || isMobile) {
+                        applyMobileOptimization();
+                    }
+                }, 200);
             }, 100);
 
             return () => clearTimeout(renderTimeout);
@@ -2114,30 +2133,7 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                 downloadLink.click();
                 document.body.removeChild(downloadLink);
                 
-                // Show user-friendly message for iOS
-                const message = document.createElement('div');
-                message.innerHTML = `
-                    <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-                                background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); 
-                                z-index: 10000; text-align: center; font-family: -apple-system, BlinkMacSystemFont, sans-serif;">
-                        <h3 style="margin: 0 0 15px 0; color: #333;">📄 PDF Generated!</h3>
-                        <p style="margin: 0 0 15px 0; color: #666; font-size: 14px;">Your invoice <strong>${filename}</strong> has been downloaded.</p>
-                        <p style="margin: 0 0 20px 0; color: #666; font-size: 12px;">Check your Downloads folder or use the Share button to save it to Files app.</p>
-                        <button onclick="this.parentElement.parentElement.remove()" 
-                                style="background: #007AFF; color: white; border: none; padding: 12px 24px; 
-                                       border-radius: 8px; font-size: 16px; cursor: pointer;">Got it</button>
-                    </div>
-                    <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999;"
-                         onclick="this.parentElement.remove()"></div>
-                `;
-                document.body.appendChild(message);
-                
-                // Auto-remove after 5 seconds
-                setTimeout(() => {
-                    if (message.parentElement) {
-                        message.remove();
-                    }
-                }, 5000);
+                // iOS: No message popup - just silent download
                 
                 // Clean up URL
                 setTimeout(() => {
