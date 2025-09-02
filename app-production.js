@@ -1873,12 +1873,213 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
     const tvaAmount = (subtotal * (selectedRegime?.rate || 0)) / 100;
     const totalTTC = subtotal + tvaAmount;
 
-    const generateInvoice = () => {
+    // PDF generation function using jsPDF (iOS-compatible)
+    const generateInvoicePDF = async () => {
         if (!invoiceData.confirmationChecked) {
             alert('Please confirm that the tax information is accurate before generating the invoice.');
             return;
         }
 
+        // Detect if we're on iOS
+        const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+        const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+        const isIOSDevice = isIOS && isSafari;
+
+        if (isIOSDevice) {
+            // Use jsPDF for iOS devices
+            await generatePDFWithJsPDF();
+        } else {
+            // Fallback to the original method for other devices
+            generateInvoiceHTML();
+        }
+    };
+
+    const generatePDFWithJsPDF = async () => {
+        try {
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4'
+            });
+
+            // Get user and agency data
+            const userName = userBillingData?.prenom && userBillingData?.nom
+                ? `${userBillingData.prenom} ${userBillingData.nom}`
+                : user.name;
+            const userAddress = userBillingData?.address || '';
+            const userLocation = userBillingData ? `${userBillingData.city} ${userBillingData.postalCode}` : '';
+            const userCountry = userBillingData?.country || '';
+
+            // Calculate totals
+            const selectedRegime = tvaRegimes.find(r => r.id === invoiceData.selectedRegime);
+            const subtotal = invoiceData.items.reduce((sum, item) =>
+                sum + (parseFloat(item.unitPrice || 0) * parseInt(item.quantity || 1))
+            , 0);
+            const tvaAmount = (subtotal * (selectedRegime?.rate || 0)) / 100;
+            const totalTTC = subtotal + tvaAmount;
+
+            // Set font
+            pdf.setFont('helvetica');
+
+            // Invoice title
+            pdf.setFontSize(20);
+            pdf.setTextColor(40, 40, 40);
+            const titleText = `${invoiceData.invoiceNumber}${invoiceData.marque ? ' - ' + invoiceData.marque : ''}`;
+            pdf.text(titleText, 105, 25, { align: 'center' });
+
+            // User details (left side)
+            pdf.setFontSize(12);
+            let yPosition = 50;
+            pdf.setFont('helvetica', 'bold');
+            pdf.text(userName, 20, yPosition);
+            pdf.setFont('helvetica', 'normal');
+            if (userAddress) {
+                yPosition += 6;
+                pdf.text(userAddress, 20, yPosition);
+            }
+            if (userLocation) {
+                yPosition += 6;
+                pdf.text(userLocation, 20, yPosition);
+            }
+            if (userCountry) {
+                yPosition += 6;
+                pdf.text(userCountry, 20, yPosition);
+            }
+            if (userBillingData?.siret) {
+                yPosition += 6;
+                pdf.text(`SIRET: ${userBillingData.siret}`, 20, yPosition);
+            }
+            if (userBillingData?.tva) {
+                yPosition += 6;
+                pdf.text(`TVA: ${userBillingData.tva}`, 20, yPosition);
+            }
+
+            // Agency details (right side)
+            let agencyY = 50;
+            agencyBillingData.slice(0, 5).forEach(line => {
+                pdf.text(line, 130, agencyY);
+                agencyY += 6;
+            });
+
+            // Invoice metadata
+            yPosition = Math.max(yPosition, agencyY) + 15;
+            pdf.setFont('helvetica', 'bold');
+            pdf.text(`Date de facturation: `, 20, yPosition);
+            pdf.setFont('helvetica', 'normal');
+            pdf.text(invoiceData.date, 70, yPosition);
+            
+            yPosition += 6;
+            pdf.setFont('helvetica', 'bold');
+            pdf.text(`Numéro de facture: `, 20, yPosition);
+            pdf.setFont('helvetica', 'normal');
+            pdf.text(invoiceData.invoiceNumber, 70, yPosition);
+            
+            yPosition += 6;
+            pdf.setFont('helvetica', 'bold');
+            pdf.text(`Conditions de paiement: `, 20, yPosition);
+            pdf.setFont('helvetica', 'normal');
+            pdf.text('30 jours', 70, yPosition);
+
+            // Table
+            yPosition += 15;
+            const tableStartY = yPosition;
+            
+            // Table headers
+            pdf.setFont('helvetica', 'bold');
+            pdf.setFillColor(240, 240, 240);
+            pdf.rect(20, yPosition, 170, 8, 'F');
+            
+            pdf.setFontSize(10);
+            pdf.text('Description', 22, yPosition + 5);
+            pdf.text('Qté', 100, yPosition + 5, { align: 'center' });
+            pdf.text('Prix HT', 125, yPosition + 5, { align: 'right' });
+            pdf.text('% TVA', 145, yPosition + 5, { align: 'center' });
+            pdf.text('Total TVA', 165, yPosition + 5, { align: 'right' });
+            pdf.text('Total TTC', 185, yPosition + 5, { align: 'right' });
+            
+            yPosition += 8;
+            
+            // Table content
+            pdf.setFont('helvetica', 'normal');
+            invoiceData.items.forEach(item => {
+                const itemSubtotal = parseFloat(item.unitPrice || 0) * parseInt(item.quantity || 1);
+                const itemTva = itemSubtotal * (selectedRegime?.rate || 0) / 100;
+                const itemTotal = itemSubtotal + itemTva;
+                
+                pdf.text(item.description, 22, yPosition + 5);
+                pdf.text(item.quantity.toString(), 100, yPosition + 5, { align: 'center' });
+                pdf.text(`${parseFloat(item.unitPrice || 0).toFixed(2)} €`, 125, yPosition + 5, { align: 'right' });
+                pdf.text(`${selectedRegime?.rate || 0}%`, 145, yPosition + 5, { align: 'center' });
+                pdf.text(`${itemTva.toFixed(2)} €`, 165, yPosition + 5, { align: 'right' });
+                pdf.text(`${itemTotal.toFixed(2)} €`, 185, yPosition + 5, { align: 'right' });
+                
+                yPosition += 8;
+            });
+
+            // Totals
+            yPosition += 5;
+            pdf.setFont('helvetica', 'bold');
+            pdf.text(`Total HT: ${subtotal.toFixed(2)} €`, 185, yPosition, { align: 'right' });
+            yPosition += 6;
+            pdf.text(`Total TVA: ${tvaAmount.toFixed(2)} €`, 185, yPosition, { align: 'right' });
+            yPosition += 6;
+            pdf.text(`Total TTC: ${totalTTC.toFixed(2)} €`, 185, yPosition, { align: 'right' });
+
+            // Legal mention
+            yPosition += 15;
+            pdf.setFont('helvetica', 'bold');
+            pdf.text('Mention légale:', 20, yPosition);
+            pdf.setFont('helvetica', 'normal');
+            const legalText = selectedRegime?.legalMention || 'TVA non applicable';
+            pdf.text(legalText, 20, yPosition + 6);
+
+            // Banking details
+            yPosition += 20;
+            pdf.setFont('helvetica', 'bold');
+            pdf.text('Coordonnées bancaires:', 20, yPosition);
+            pdf.setFont('helvetica', 'normal');
+            
+            if (userBillingData?.banque) {
+                yPosition += 6;
+                pdf.text(`Banque: ${userBillingData.banque}`, 20, yPosition);
+            }
+            if (userBillingData?.iban) {
+                yPosition += 6;
+                pdf.text(`IBAN: ${userBillingData.iban}`, 20, yPosition);
+            }
+            if (userBillingData?.swiftBic) {
+                yPosition += 6;
+                pdf.text(`SWIFT/BIC: ${userBillingData.swiftBic}`, 20, yPosition);
+            }
+            if (!userBillingData || (!userBillingData.banque && !userBillingData.iban && !userBillingData.swiftBic)) {
+                yPosition += 6;
+                pdf.text('Aucune information bancaire disponible', 20, yPosition);
+            }
+
+            // Generate filename
+            const filename = `${invoiceData.invoiceNumber}${invoiceData.marque ? '_' + invoiceData.marque.replace(/\s+/g, '_') : ''}.pdf`;
+            
+            // Save PDF - this will open in a new tab on iOS with proper PDF MIME type
+            const pdfBlob = pdf.output('blob');
+            const pdfUrl = URL.createObjectURL(pdfBlob);
+            
+            // Open in new tab with proper content type
+            const newTab = window.open();
+            newTab.location.href = pdfUrl;
+            
+            // Clean up after a delay
+            setTimeout(() => {
+                URL.revokeObjectURL(pdfUrl);
+            }, 1000);
+
+        } catch (error) {
+            console.error('Error generating PDF:', error);
+            alert('Error generating PDF. Please try again.');
+        }
+    };
+
+    const generateInvoiceHTML = () => {
         const invoiceWindow = window.open('', '_blank');
         const userName = userBillingData?.prenom && userBillingData?.nom
             ? `${userBillingData.prenom} ${userBillingData.nom}`
@@ -2656,7 +2857,7 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                 <div className="flex gap-4">
                     <button
                         type="button"
-                        onClick={generateInvoice}
+                        onClick={generateInvoicePDF}
                         disabled={!invoiceData.confirmationChecked}
                         className="gradient-bg text-white px-6 py-3 rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
                     >
