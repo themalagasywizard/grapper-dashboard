@@ -1897,10 +1897,24 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
     const generatePDFWithJsPDF = async () => {
         try {
             const { jsPDF } = window.jspdf;
+            
+            // Generate filename first
+            const filename = `${invoiceData.invoiceNumber}${invoiceData.marque ? '_' + invoiceData.marque.replace(/\s+/g, '_') : ''}.pdf`;
+            
             const pdf = new jsPDF({
                 orientation: 'portrait',
                 unit: 'mm',
                 format: 'a4'
+            });
+
+            // Set PDF metadata with proper title
+            pdf.setProperties({
+                title: filename.replace('.pdf', ''),
+                subject: `Invoice ${invoiceData.invoiceNumber}`,
+                author: user.name,
+                creator: 'Grapper Invoice Generator',
+                producer: 'Grapper',
+                keywords: `invoice, ${invoiceData.invoiceNumber}, ${invoiceData.marque || ''}`.trim().replace(/, $/, '')
             });
 
             // Get user and agency data
@@ -2057,50 +2071,92 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
                 pdf.text('Aucune information bancaire disponible', 20, yPosition);
             }
 
-            // Generate filename
-            const filename = `${invoiceData.invoiceNumber}${invoiceData.marque ? '_' + invoiceData.marque.replace(/\s+/g, '_') : ''}.pdf`;
-            
-            // Save PDF with proper filename for iOS
+            // Get PDF as blob
             const pdfBlob = pdf.output('blob');
             
-            // Create a download link with proper filename
-            const downloadLink = document.createElement('a');
-            const pdfUrl = URL.createObjectURL(pdfBlob);
+            // Detect iOS for optimized handling
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+            const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+            const isIOSDevice = isIOS && isSafari;
             
-            downloadLink.href = pdfUrl;
-            downloadLink.download = filename;
-            downloadLink.style.display = 'none';
-            
-            // Add to document, click, and remove
-            document.body.appendChild(downloadLink);
-            downloadLink.click();
-            document.body.removeChild(downloadLink);
-            
-            // Also open in new tab for immediate viewing (with better filename approach)
-            try {
-                // Create a new blob with PDF content type for viewing
-                const viewBlob = new Blob([pdfBlob], { type: 'application/pdf' });
-                const viewUrl = URL.createObjectURL(viewBlob);
+            if (isIOSDevice) {
+                // iOS-optimized approach: Focus on download with proper filename
+                // Create a download link with proper filename
+                const downloadLink = document.createElement('a');
+                const pdfUrl = URL.createObjectURL(pdfBlob);
                 
-                // Open in new tab
-                const newTab = window.open(viewUrl, '_blank');
-                if (newTab) {
-                    // Set the document title to the filename for better identification
-                    newTab.document.title = filename;
+                downloadLink.href = pdfUrl;
+                downloadLink.download = filename;
+                downloadLink.style.display = 'none';
+                
+                // Add to document, click, and remove
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+                
+                // Show user-friendly message for iOS
+                const message = document.createElement('div');
+                message.innerHTML = `
+                    <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+                                background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); 
+                                z-index: 10000; text-align: center; font-family: -apple-system, BlinkMacSystemFont, sans-serif;">
+                        <h3 style="margin: 0 0 15px 0; color: #333;">📄 PDF Generated!</h3>
+                        <p style="margin: 0 0 15px 0; color: #666; font-size: 14px;">Your invoice <strong>${filename}</strong> has been downloaded.</p>
+                        <p style="margin: 0 0 20px 0; color: #666; font-size: 12px;">Check your Downloads folder or use the Share button to save it to Files app.</p>
+                        <button onclick="this.parentElement.parentElement.remove()" 
+                                style="background: #007AFF; color: white; border: none; padding: 12px 24px; 
+                                       border-radius: 8px; font-size: 16px; cursor: pointer;">Got it</button>
+                    </div>
+                    <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 9999;"
+                         onclick="this.parentElement.remove()"></div>
+                `;
+                document.body.appendChild(message);
+                
+                // Auto-remove after 5 seconds
+                setTimeout(() => {
+                    if (message.parentElement) {
+                        message.remove();
+                    }
+                }, 5000);
+                
+                // Clean up URL
+                setTimeout(() => {
+                    URL.revokeObjectURL(pdfUrl);
+                }, 2000);
+                
+            } else {
+                // Desktop/non-iOS: Both download and preview
+                // Create a download link with proper filename
+                const downloadLink = document.createElement('a');
+                const pdfUrl = URL.createObjectURL(pdfBlob);
+                
+                downloadLink.href = pdfUrl;
+                downloadLink.download = filename;
+                downloadLink.style.display = 'none';
+                
+                // Add to document, click, and remove
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
+                
+                // Also open in new tab for immediate viewing
+                try {
+                    const viewUrl = URL.createObjectURL(pdfBlob);
+                    const newTab = window.open(viewUrl, '_blank');
+                    
+                    // Clean up after a delay
+                    setTimeout(() => {
+                        URL.revokeObjectURL(viewUrl);
+                    }, 5000);
+                } catch (viewError) {
+                    console.log('Could not open PDF in new tab, but download should work:', viewError);
                 }
                 
-                // Clean up after a delay
+                // Clean up the download URL
                 setTimeout(() => {
-                    URL.revokeObjectURL(viewUrl);
-                }, 5000);
-            } catch (viewError) {
-                console.log('Could not open PDF in new tab, but download should work:', viewError);
+                    URL.revokeObjectURL(pdfUrl);
+                }, 1000);
             }
-            
-            // Clean up the download URL
-            setTimeout(() => {
-                URL.revokeObjectURL(pdfUrl);
-            }, 1000);
 
         } catch (error) {
             console.error('Error generating PDF:', error);
