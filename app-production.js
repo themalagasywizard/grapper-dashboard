@@ -1314,15 +1314,31 @@ const Dashboard = ({ campaigns, events = [], language }) => {
 
                 calendarInstance.current.render();
                 
-                // Force immediate mobile optimization on iOS after calendar renders
-                setTimeout(() => {
-                    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-                    const isMobile = window.matchMedia('(max-width: 640px)').matches;
+                // Safari iOS requires more aggressive optimization triggers
+                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+                const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+                const isMobile = window.matchMedia('(max-width: 640px)').matches;
+                
+                if (isIOS || isMobile) {
+                    // Multiple optimization attempts for Safari iOS
+                    applyMobileOptimization(); // Immediate attempt
                     
-                    if (isIOS || isMobile) {
-                        applyMobileOptimization();
+                    setTimeout(() => applyMobileOptimization(), 50);   // Very quick retry
+                    setTimeout(() => applyMobileOptimization(), 150);  // Quick retry
+                    setTimeout(() => applyMobileOptimization(), 300);  // Medium retry
+                    setTimeout(() => applyMobileOptimization(), 600);  // Longer retry
+                    
+                    // Safari-specific: Force after FullCalendar's internal initialization
+                    if (isSafari) {
+                        setTimeout(() => {
+                            applyMobileOptimization();
+                            // Force a layout recalculation
+                            if (calendarRef.current) {
+                                calendarRef.current.offsetHeight; // Trigger reflow
+                            }
+                        }, 1000);
                     }
-                }, 200);
+                }
             }, 100);
 
             return () => clearTimeout(renderTimeout);
