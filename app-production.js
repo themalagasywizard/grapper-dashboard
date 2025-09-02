@@ -1995,38 +1995,58 @@ const InvoiceGenerator = ({ user, campaigns, language }) => {
             pdf.setFont('helvetica', 'normal');
             pdf.text('30 jours', 70, yPosition);
 
-            // Table
+            // Table with better column spacing
             yPosition += 15;
             const tableStartY = yPosition;
             
-            // Table headers
+            // Define column positions and widths for better spacing
+            const tableLeft = 20;
+            const tableWidth = 170;
+            const colPositions = {
+                description: 22,
+                quantity: 85,
+                unitPrice: 110,
+                vatRate: 135,
+                vatTotal: 155,
+                total: 180
+            };
+            
+            // Table headers background
             pdf.setFont('helvetica', 'bold');
             pdf.setFillColor(240, 240, 240);
-            pdf.rect(20, yPosition, 170, 8, 'F');
+            pdf.rect(tableLeft, yPosition, tableWidth, 8, 'F');
             
-            pdf.setFontSize(10);
-            pdf.text('Description', 22, yPosition + 5);
-            pdf.text('Qté', 100, yPosition + 5, { align: 'center' });
-            pdf.text('Prix HT', 125, yPosition + 5, { align: 'right' });
-            pdf.text('% TVA', 145, yPosition + 5, { align: 'center' });
-            pdf.text('Total TVA', 165, yPosition + 5, { align: 'right' });
-            pdf.text('Total TTC', 185, yPosition + 5, { align: 'right' });
+            // Table headers with better spacing
+            pdf.setFontSize(9);
+            pdf.text('Description', colPositions.description, yPosition + 5);
+            pdf.text('Qté', colPositions.quantity, yPosition + 5, { align: 'center' });
+            pdf.text('Prix HT', colPositions.unitPrice, yPosition + 5, { align: 'center' });
+            pdf.text('% TVA', colPositions.vatRate, yPosition + 5, { align: 'center' });
+            pdf.text('TVA €', colPositions.vatTotal, yPosition + 5, { align: 'center' });
+            pdf.text('Total €', colPositions.total, yPosition + 5, { align: 'center' });
             
             yPosition += 8;
             
-            // Table content
+            // Table content with consistent positioning
             pdf.setFont('helvetica', 'normal');
+            pdf.setFontSize(8);
             invoiceData.items.forEach(item => {
                 const itemSubtotal = parseFloat(item.unitPrice || 0) * parseInt(item.quantity || 1);
                 const itemTva = itemSubtotal * (selectedRegime?.rate || 0) / 100;
                 const itemTotal = itemSubtotal + itemTva;
                 
-                pdf.text(item.description, 22, yPosition + 5);
-                pdf.text(item.quantity.toString(), 100, yPosition + 5, { align: 'center' });
-                pdf.text(`${parseFloat(item.unitPrice || 0).toFixed(2)} €`, 125, yPosition + 5, { align: 'right' });
-                pdf.text(`${selectedRegime?.rate || 0}%`, 145, yPosition + 5, { align: 'center' });
-                pdf.text(`${itemTva.toFixed(2)} €`, 165, yPosition + 5, { align: 'right' });
-                pdf.text(`${itemTotal.toFixed(2)} €`, 185, yPosition + 5, { align: 'right' });
+                // Truncate description if too long
+                let description = item.description;
+                if (description.length > 25) {
+                    description = description.substring(0, 22) + '...';
+                }
+                
+                pdf.text(description, colPositions.description, yPosition + 5);
+                pdf.text(item.quantity.toString(), colPositions.quantity, yPosition + 5, { align: 'center' });
+                pdf.text(`${parseFloat(item.unitPrice || 0).toFixed(2)}`, colPositions.unitPrice, yPosition + 5, { align: 'center' });
+                pdf.text(`${selectedRegime?.rate || 0}%`, colPositions.vatRate, yPosition + 5, { align: 'center' });
+                pdf.text(`${itemTva.toFixed(2)}`, colPositions.vatTotal, yPosition + 5, { align: 'center' });
+                pdf.text(`${itemTotal.toFixed(2)}`, colPositions.total, yPosition + 5, { align: 'center' });
                 
                 yPosition += 8;
             });
