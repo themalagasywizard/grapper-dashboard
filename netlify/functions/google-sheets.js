@@ -24,7 +24,7 @@ exports.handler = async (event, context) => {
         const LOGIN_RANGE = process.env.GOOGLE_SHEETS_LOGIN_RANGE || 'Mail!A1:B2000'; // Forcing A:B to ensure both columns are read
         const TOOLBOX_RANGE = process.env.GOOGLE_SHEETS_TOOLBOX_RANGE || "'Boite à Outil'!A1:ZZ2000";
         const EVENTS_RANGE = process.env.GOOGLE_SHEETS_EVENTS_RANGE || 'Events!A1:Z2000';
-        const USER_BILLING_RANGE = process.env.GOOGLE_SHEETS_USER_BILLING_RANGE || "'Adresse Facturation Talents'!A1:J2000";
+        const USER_BILLING_RANGE = process.env.GOOGLE_SHEETS_USER_BILLING_RANGE || "'Adresse Facturation Talents'!A1:L2000";
         const AGENCY_BILLING_RANGE = process.env.GOOGLE_SHEETS_AGENCY_BILLING_RANGE || "'Adresse Facturation Grapper'!A1:A10";
 
         // Validate environment variables
@@ -140,7 +140,9 @@ exports.handler = async (event, context) => {
                 country: (row[6] || '').toString().trim(), // Column G - Pays (country)
                 banque: (row[7] || '').toString().trim(), // Column H - Banque (bank name)
                 iban: (row[8] || '').toString().trim(), // Column I - IBAN
-                swiftBic: (row[9] || '').toString().trim() // Column J - SWIFT/BIC
+                swiftBic: (row[9] || '').toString().trim(), // Column J - SWIFT/BIC
+                siret: (row[10] || '').toString().trim(), // Column K - SIRET
+                tva: (row[11] || '').toString().trim() // Column L - TVA
             })).filter(user => user.email && user.email.includes('@'));
         }
 
