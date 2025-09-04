@@ -186,7 +186,7 @@ const translations = {
         calendarView: "Calendrier",
         listView: "Liste",
         upcomingView: "À venir",
-        today: "Aujourd'hui",
+        today: "today",
 
         // Month names
         months: {
