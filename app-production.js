@@ -988,12 +988,12 @@ const Navigation = ({ user, onLogout, currentTab, setCurrentTab, userCampaigns, 
                             className="w-12 h-12 object-contain"
                         />
                         <div>
-                            <h1 className="text-2xl font-bold text-gray-900">Grapper</h1>
+                            <h1 className="text-2xl font-bold text-gray-900 hidden md:block">Grapper</h1>
                         </div>
                     </div>
                     
-                    <div className="flex items-center space-x-4">
-                        {/* Notifications Bell */}
+                    <div className="flex items-center space-x-2 md:space-x-4">
+                        {/* Notifications Bell - Always visible */}
                         <NotificationsBell userEvents={userEvents} language={language} />
                         
                         {/* Language Toggle Button */}
@@ -1009,9 +1009,9 @@ const Navigation = ({ user, onLogout, currentTab, setCurrentTab, userCampaigns, 
                             <span className="text-gray-700 block">{t('welcome')}, {formatUsername(user.name)}</span>
                         </div>
                         
-                        <button 
+                        <button
                             onClick={onLogout}
-                            className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors"
+                            className="bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 md:px-4 py-2 rounded-lg transition-colors text-sm md:text-base"
                         >
                             {t('logout')}
                         </button>
