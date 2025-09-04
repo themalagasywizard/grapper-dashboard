@@ -1204,7 +1204,7 @@ const Dashboard = ({ campaigns, events = [], language }) => {
                     buttonText: {
                         prev: isSmallScreen ? '‹' : (language === 'fr' ? t('previous') : 'Previous'),
                         next: isSmallScreen ? '›' : (language === 'fr' ? t('next') : 'Next'),
-                        today: language === 'fr' ? t('today') : 'Today',
+                        today: isSmallScreen ? '📅' : (language === 'fr' ? t('today') : 'Today'),
                         dayGridMonth: language === 'fr' ? t('calendarView') : 'Calendar',
                         upcomingList: language === 'fr' ? t('listView') : 'List'
                     },
