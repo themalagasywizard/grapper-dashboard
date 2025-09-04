@@ -26,7 +26,13 @@ const translations = {
         noCampaignsFound: "No campaigns found for your account.",
         checkAvailableUsers: "Check the \"Available Users\" tab to see valid email addresses.",
         deadline: "Deadline",
-        
+
+        // Calendar Widget Buttons
+        calendarView: "Calendar",
+        listView: "List",
+        upcomingView: "Upcoming",
+        today: "Today",
+
         // History
         myCampaigns: "My Campaigns",
         completed: "Completed",
@@ -160,7 +166,13 @@ const translations = {
         noCampaignsFound: "Aucune campagne trouvée pour votre compte.",
         checkAvailableUsers: "Consultez l'onglet \"Utilisateurs disponibles\" pour voir les adresses e-mail valides.",
         deadline: "Échéance",
-        
+
+        // Calendar Widget Buttons
+        calendarView: "Calendrier",
+        listView: "Liste",
+        upcomingView: "À venir",
+        today: "Aujourd'hui",
+
         // History
         myCampaigns: "Mes campagnes",
         completed: "Terminé",
@@ -1149,12 +1161,15 @@ const Dashboard = ({ campaigns, events = [], language }) => {
                         upcomingList: {
                             type: 'list',
                             duration: { years: 2 },
-                            buttonText: 'Upcoming'
+                            buttonText: language === 'fr' ? t('upcomingView') : 'Upcoming'
                         }
                     },
                     buttonText: {
-                        dayGridMonth: 'Calendar',
-                        upcomingList: 'List'
+                        prev: language === 'fr' ? t('previous') : 'Previous',
+                        next: language === 'fr' ? t('next') : 'Next',
+                        today: language === 'fr' ? t('today') : 'Today',
+                        dayGridMonth: language === 'fr' ? t('calendarView') : 'Calendar',
+                        upcomingList: language === 'fr' ? t('listView') : 'List'
                     },
                     dayMaxEventRows: isSmallScreen ? 2 : 3,
                     expandRows: true,
