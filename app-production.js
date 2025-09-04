@@ -33,6 +33,21 @@ const translations = {
         upcomingView: "Upcoming",
         today: "Today",
 
+        // Month names
+        months: {
+            january: "January", february: "February", march: "March",
+            april: "April", may: "May", june: "June",
+            july: "July", august: "August", september: "September",
+            october: "October", november: "November", december: "December"
+        },
+
+        // Day names
+        days: {
+            sunday: "Sunday", monday: "Monday", tuesday: "Tuesday",
+            wednesday: "Wednesday", thursday: "Thursday", friday: "Friday",
+            saturday: "Saturday"
+        },
+
         // History
         myCampaigns: "My Campaigns",
         completed: "Completed",
@@ -172,6 +187,21 @@ const translations = {
         listView: "Liste",
         upcomingView: "À venir",
         today: "Aujourd'hui",
+
+        // Month names
+        months: {
+            january: "Janvier", february: "Février", march: "Mars",
+            april: "Avril", may: "Mai", june: "Juin",
+            july: "Juillet", august: "Août", september: "Septembre",
+            october: "Octobre", november: "Novembre", december: "Décembre"
+        },
+
+        // Day names
+        days: {
+            sunday: "Dimanche", monday: "Lundi", tuesday: "Mardi",
+            wednesday: "Mercredi", thursday: "Jeudi", friday: "Vendredi",
+            saturday: "Samedi"
+        },
 
         // History
         myCampaigns: "Mes campagnes",
@@ -1113,9 +1143,15 @@ const Dashboard = ({ campaigns, events = [], language }) => {
     const upcomingCampaigns = campaigns.filter(c => c.Status === 'Upcoming');
     const thisMonthRevenue = upcomingCampaigns.reduce((sum, c) => sum + c.Revenue, 0);
     
-    // Initialize calendar only once on mount
+    // Initialize calendar and re-render when language changes
     useEffect(() => {
-        if (calendarRef.current && !calendarInstance.current && window.FullCalendar) {
+        // Destroy existing calendar instance if it exists
+        if (calendarInstance.current) {
+            calendarInstance.current.destroy();
+            calendarInstance.current = null;
+        }
+
+        if (calendarRef.current && window.FullCalendar) {
             const renderTimeout = setTimeout(() => {
                 const today = new Date();
                 today.setHours(0, 0, 0, 0); // Set to start of today
@@ -1152,8 +1188,9 @@ const Dashboard = ({ campaigns, events = [], language }) => {
                 calendarInstance.current = new FullCalendar.Calendar(calendarRef.current, {
                     // Show Calendar by default even on mobile, but allow switching to list
                     initialView: 'dayGridMonth',
+                    locale: language === 'fr' ? 'fr' : 'en',
                     headerToolbar: {
-                        left: 'prev,next today',
+                        left: isSmallScreen ? 'prev,next today' : 'prev,next today',
                         center: 'title',
                         right: 'dayGridMonth,upcomingList'
                     },
@@ -1165,8 +1202,8 @@ const Dashboard = ({ campaigns, events = [], language }) => {
                         }
                     },
                     buttonText: {
-                        prev: language === 'fr' ? t('previous') : 'Previous',
-                        next: language === 'fr' ? t('next') : 'Next',
+                        prev: isSmallScreen ? '‹' : (language === 'fr' ? t('previous') : 'Previous'),
+                        next: isSmallScreen ? '›' : (language === 'fr' ? t('next') : 'Next'),
                         today: language === 'fr' ? t('today') : 'Today',
                         dayGridMonth: language === 'fr' ? t('calendarView') : 'Calendar',
                         upcomingList: language === 'fr' ? t('listView') : 'List'
