@@ -155,7 +155,7 @@ const translations = {
         myTotalCampaigns: "Mes campagnes totales",
         upcomingCampaigns: "Campagnes à venir",
         myTotalRevenue: "Mon chiffre d'affaires total",
-        myCampaignCalendar: "Mon calendrier de campagnes",
+        myCampaignCalendar: "Mon calendrier",
         myRecentCampaigns: "Mes campagnes récentes",
         noCampaignsFound: "Aucune campagne trouvée pour votre compte.",
         checkAvailableUsers: "Consultez l'onglet \"Utilisateurs disponibles\" pour voir les adresses e-mail valides.",
