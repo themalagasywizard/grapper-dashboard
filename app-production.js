@@ -1030,7 +1030,7 @@ const Navigation = ({ user, onLogout, currentTab, setCurrentTab, userCampaigns, 
                             className="w-12 h-12 object-contain"
                         />
                         <div>
-                            <h1 className="text-2xl font-bold text-gray-900 hidden md:block">Grapper</h1>
+                            <h1 className="text-2xl font-bold text-gray-900 hidden md:block grapper-title">Grapper</h1>
                         </div>
                     </div>
                     
@@ -3312,7 +3312,7 @@ const Login = ({ onLogin, availableUsers, language, toggleLanguage, loading }) =
                         alt="Grapper Logo" 
                         className="w-20 h-20 mx-auto mb-4 object-contain"
                     />
-                    <h2 className="text-3xl font-bold text-gray-900">{t('welcomeToGrapper')}</h2>
+                    <h2 className="text-3xl font-bold text-gray-900 grapper-title">{t('welcomeToGrapper')}</h2>
                     <p className="mt-2 text-gray-600">{t('signInAccess')}</p>
                     
                     {/* Language Toggle Button */}
