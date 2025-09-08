@@ -5,7 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Grapper - Influencer Dashboard</title>
     <link rel="icon" type="image/jpeg" href="./logograpper.jpg">
-    
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Montserrat:wght@700&display=swap" rel="stylesheet">
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -74,13 +79,21 @@
         .gradient-bg {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
-        
+
         .gradient-bg-light {
             background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
         }
-        
+
         .gradient-bg-success {
             background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+
+        /* Montserrat font for Grapper title on desktop */
+        @media (min-width: 768px) {
+            .grapper-title {
+                font-family: 'Montserrat', sans-serif !important;
+                font-weight: 700 !important;
+            }
         }
     </style>
 </head>
