@@ -519,28 +519,17 @@ const cleanCurrency = (amount) => {
 const extractUsersFromSheetData = (sheetData) => {
     const usersMap = new Map();
     
-
-
-
-    
     sheetData.forEach((row, index) => {
-        // Prefer Talent (A) if it contains an email, otherwise fall back to Mail
-        const talentValue = row['Talent'] || '';
-        const mailValue = row['Mail'] || '';
-        const email = (talentValue.includes('@') ? talentValue : mailValue).trim();
-        const talent = talentValue; // may be email in new DB
-        
-        if (index < 5) {
-
-        }
+        // Email is now directly in 'Talents' column (Column A)
+        const email = (row['Talents'] || '').trim();
+        const talent = email ? email.split('@')[0].replace(/[._]/g, ' ') : '';
         
         // Only process rows with valid email addresses (not empty, not #N/A)
         if (email && email !== '' && email !== '#N/A' && email.includes('@')) {
             if (!usersMap.has(email)) {
-                const nameFallback = email.split('@')[0].replace(/[._-]+/g, ' ');
                 usersMap.set(email, {
                     email,
-                    name: talent && !talent.includes('@') ? talent.trim() : nameFallback,
+                    name: talent || email.split('@')[0].replace(/[._-]+/g, ' '),
                     joinDate: convertFrenchDate(row['Date Création']) || '2024-01-01'
                 });
             }
@@ -559,8 +548,8 @@ const buildUsersFromLoginEmails = (emails, sheetData) => {
     const nameByEmail = new Map();
     // Try to map email -> Talent name from main sheet rows
     sheetData.forEach(row => {
-        const email = (row['Mail'] || '').trim().toLowerCase();
-        const name = (row['Talent'] || '').trim();
+        const email = (row['Talents'] || '').trim().toLowerCase();
+        const name = email ? email.split('@')[0].replace(/[._]/g, ' ') : '';
         if (email && name && email.includes('@') && !nameByEmail.has(email)) {
             nameByEmail.set(email, name);
         }
@@ -582,10 +571,10 @@ const buildUsersFromLoginData = (loginData, sheetData) => {
     const users = [];
     const seen = new Set();
     const nameByEmail = new Map();
-    // Try to map email -> Talent name from main sheet rows
+    // Try to map email -> Talent name from main sheet rows  
     sheetData.forEach(row => {
-        const email = (row['Mail'] || '').trim().toLowerCase();
-        const name = (row['Talent'] || '').trim();
+        const email = (row['Talents'] || '').trim().toLowerCase();
+        const name = email ? email.split('@')[0].replace(/[._]/g, ' ') : '';
         if (email && name && email.includes('@') && !nameByEmail.has(email)) {
             nameByEmail.set(email, name);
         }
@@ -622,36 +611,29 @@ const buildUsersFromLoginData = (loginData, sheetData) => {
 const transformSheetDataToCampaigns = (sheetData) => {
     return sheetData
         .filter(row => {
-            // Include any row that has a brand and some user identifier (Talent or Mail)
+            // Include any row that has a brand and email in Talents column
             const marque = row['Marque'];
-            const talentValue = row['Talent'] || '';
-            const mailValue = row['Mail'] || '';
-            const emailCandidate = (talentValue.includes('@') ? talentValue : mailValue).trim();
-            return marque && emailCandidate;
+            const talents = row['Talents'] || ''; // New column name
+            const emailCandidate = talents.trim();
+            return marque && emailCandidate && emailCandidate.includes('@');
         })
         .map((row, index) => {
-            // Prefer user email from Talent if it's an email, else from Mail, else derive
-            const talent = row['Talent'] || '';
-            const mail = row['Mail'] || '';
-            let userEmail = '';
-            if (talent.includes('@')) {
-                userEmail = talent.trim();
-            } else if (mail && mail.includes('@')) {
-                userEmail = mail.trim();
-            } else if (talent) {
-                userEmail = `${talent.toLowerCase().replace(/\s+/g, '.')}@example.com`;
-            }
+            // Email is now in 'Talents' column (Column A)
+            const userEmail = (row['Talents'] || '').trim();
+            
+            // Extract name from email for display (before @ symbol)
+            const talentName = userEmail ? userEmail.split('@')[0].replace(/[._]/g, ' ') : '';
 
-            // Compute net revenue: Rémunération totale (L) - Commission (R)
+            // Compute net revenue: Rémunération totale - Commission
             const remunerationTotale = cleanCurrency(row['Rémunération totale']);
             const commission = cleanCurrency(row['Commission']);
             const netRevenue = Math.max(0, remunerationTotale - commission);
 
-            // Determine a display date for history: prefer Date Fin, else Preview, else Post
-            const dateFin = convertFrenchDate(row['Date Fin']);
-            const preview = convertFrenchDate(row['Preview'] || row['Date Début'] || row['Date Debut'] || row['Date début']);
+            // Determine a display date for history: prefer Post date, else Preview, else Date Début
             const post = convertFrenchDate(row['Post']);
-            const displayDate = dateFin || preview || post || '';
+            const preview = convertFrenchDate(row['Preview']);
+            const dateDebut = convertFrenchDate(row['Date Début']);
+            const displayDate = post || preview || dateDebut || '';
 
             // Map status to Completed/Upcoming for stats
             const rawStatus = (row['Status'] || '').toLowerCase();
@@ -659,7 +641,7 @@ const transformSheetDataToCampaigns = (sheetData) => {
 
             return {
                 Campaign_ID: `sheet_${index}`,
-                Talent: talent || '',
+                Talent: talentName,
                 Influencer_Email: userEmail,
                 Date: displayDate,
                 Brand_Name: row['Marque'] || '',
@@ -667,25 +649,24 @@ const transformSheetDataToCampaigns = (sheetData) => {
                 Status: isCompleted ? 'Completed' : 'Upcoming',
                 DateCreation: convertFrenchDate(row['Date Création']),
                 Description: row['Description rapide de la demande'] || '',
-                Format: row['Format (influence vs UGC)'] || '',
+                Format: '', // Not available in current structure
                 Commission: commission,
                 OriginalData: row // Keep original for reference
             };
         });
 };
 
-// Build calendar events for Preview (Column E) and Post (Column G) with color/status from Column H
+// Build calendar events for Preview and Post dates with status colors
 const buildActionEventsFromSheet = (sheetData, rawEventsMatrix) => {
     const events = [];
     sheetData.forEach((row, index) => {
-        // Email is in Talent (A) per new DB; fallback to Mail if needed
-        const emailRaw = (row['Talent'] || row['Mail'] || '').trim();
-        const email = emailRaw;
+        // Email is now in 'Talents' column (Column A)
+        const email = (row['Talents'] || '').trim();
         const brand = row['Marque'] || '';
         const status = (row['Status'] || '').trim();
-        const talent = row['Talent'] || '';
-        const preview = (row['Preview'] || '') || '';
-        const post = (row['Post'] || '') || '';
+        const talent = email ? email.split('@')[0].replace(/[._]/g, ' ') : '';
+        const preview = (row['Preview'] || '').trim();
+        const post = (row['Post'] || '').trim();
 
         const colorForStatus = (s) => {
             const lower = s.toLowerCase();
