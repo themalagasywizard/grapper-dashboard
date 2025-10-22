@@ -528,10 +528,26 @@ const convertFrenchDate = (input) => {
 
 // Helper to safely extract a value from a row using a list of possible header aliases
 const getValueByAliases = (row, aliases) => {
+    // First try exact matches
     for (const key of aliases) {
-        const value = (row[key] || '').toString().trim();
-        if (value) return value;
+        if (row.hasOwnProperty(key)) {
+            const value = (row[key] || '').toString().trim();
+            if (value && value !== '#N/A') return value;
+        }
     }
+
+    // If no exact match, try case-insensitive search
+    const rowKeys = Object.keys(row).map(k => k.toLowerCase());
+    for (const alias of aliases) {
+        const lowerAlias = alias.toLowerCase();
+        const keyIndex = rowKeys.findIndex(k => k === lowerAlias || k.includes(lowerAlias));
+        if (keyIndex !== -1) {
+            const actualKey = Object.keys(row)[keyIndex];
+            const value = (row[actualKey] || '').toString().trim();
+            if (value && value !== '#N/A') return value;
+        }
+    }
+
     return '';
 };
 
@@ -693,6 +709,8 @@ const transformSheetDataToCampaigns = (sheetData) => {
 // Build calendar events for Preview and Post dates with status colors
 const buildActionEventsFromSheet = (sheetData, rawEventsMatrix) => {
     const events = [];
+    let previewCount = 0;
+    let postCount = 0;
     console.log(`Processing ${sheetData.length} rows for calendar events`);
     sheetData.forEach((row, index) => {
         // Email is now in 'Talents' column (Column A)
@@ -708,10 +726,12 @@ const buildActionEventsFromSheet = (sheetData, rawEventsMatrix) => {
 
         // Support multiple possible header names for preview/post columns
         const preview = getValueByAliases(row, [
-            'Preview', 'Préview', 'Previsualisation', 'Prévisualisation', 'Preview Date', 'Date Preview', 'Previsu', 'Pre-View'
+            'Preview', 'Préview', 'Previsualisation', 'Prévisualisation', 'Preview Date', 'Date Preview', 'Previsu', 'Pre-View',
+            'Prévisu', 'Prévisualisation', 'Date Prévisu', 'Prévue', 'Date Prévue', 'Prévision', 'Date Prévision'
         ]);
         const post = getValueByAliases(row, [
-            'Post', 'Publication', 'Date Post', 'Date Publication', 'Post Date'
+            'Post', 'Publication', 'Date Post', 'Date Publication', 'Post Date', 'Publier', 'Date Publication',
+            'Publié', 'Date Publié', 'Publication Date', 'Posting Date'
         ]);
 
         const colorForStatus = (s) => {
@@ -746,15 +766,20 @@ const buildActionEventsFromSheet = (sheetData, rawEventsMatrix) => {
         const dPost = convertFrenchDate(post);
 
         // Debug logging
-        if (brand) {
-            console.log(`Brand: ${brand}, Preview: "${preview}" -> "${dPreview}", Post: "${post}" -> "${dPost}"`);
+        if (brand && (preview || post)) {
+            console.log(`Brand: ${brand}`);
+            console.log(`  Raw Preview: "${row['Preview'] || ''}", Raw Post: "${row['Post'] || ''}"`);
+            console.log(`  Found Preview: "${preview}" -> "${dPreview}"`);
+            console.log(`  Found Post: "${post}" -> "${dPost}"`);
         }
 
         if (dPreview) {
             events.push(makeEvent(dPreview, 'Preview'));
+            previewCount++;
         }
         if (dPost) {
             events.push(makeEvent(dPost, 'Post'));
+            postCount++;
         }
     });
 
@@ -819,7 +844,7 @@ const buildActionEventsFromSheet = (sheetData, rawEventsMatrix) => {
             });
         });
     }
-    console.log(`Created ${events.length} calendar events`);
+    console.log(`Created ${events.length} calendar events (${previewCount} preview, ${postCount} post)`);
     return events;
 };
 
