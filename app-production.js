@@ -693,12 +693,19 @@ const transformSheetDataToCampaigns = (sheetData) => {
 // Build calendar events for Preview and Post dates with status colors
 const buildActionEventsFromSheet = (sheetData, rawEventsMatrix) => {
     const events = [];
+    console.log(`Processing ${sheetData.length} rows for calendar events`);
     sheetData.forEach((row, index) => {
         // Email is now in 'Talents' column (Column A)
         const email = (row['Talents'] || '').trim();
         const brand = row['Marque'] || '';
         const status = (row['Status'] || '').trim();
         const talent = email ? email.split('@')[0].replace(/[._]/g, ' ') : '';
+
+        // Debug: Log available keys for this row (first few rows only)
+        if (index < 3) {
+            console.log(`Row ${index} keys:`, Object.keys(row).slice(0, 15));
+        }
+
         // Support multiple possible header names for preview/post columns
         const preview = getValueByAliases(row, [
             'Preview', 'Préview', 'Previsualisation', 'Prévisualisation', 'Preview Date', 'Date Preview', 'Previsu', 'Pre-View'
@@ -736,10 +743,16 @@ const buildActionEventsFromSheet = (sheetData, rawEventsMatrix) => {
         };
 
         const dPreview = convertFrenchDate(preview);
+        const dPost = convertFrenchDate(post);
+
+        // Debug logging
+        if (brand) {
+            console.log(`Brand: ${brand}, Preview: "${preview}" -> "${dPreview}", Post: "${post}" -> "${dPost}"`);
+        }
+
         if (dPreview) {
             events.push(makeEvent(dPreview, 'Preview'));
         }
-        const dPost = convertFrenchDate(post);
         if (dPost) {
             events.push(makeEvent(dPost, 'Post'));
         }
@@ -806,6 +819,7 @@ const buildActionEventsFromSheet = (sheetData, rawEventsMatrix) => {
             });
         });
     }
+    console.log(`Created ${events.length} calendar events`);
     return events;
 };
 
