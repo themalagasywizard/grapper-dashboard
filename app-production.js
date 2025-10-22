@@ -487,18 +487,52 @@ const googleSheetsService = new GoogleSheetsService();
 // Helper function to normalize strings for comparison (removes accents, lowercase, trims)
 const normalizeString = (s) => (s || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 
-// Function to convert French date format (DD/MM/YYYY) to YYYY-MM-DD
-const convertFrenchDate = (frenchDate) => {
-    if (!frenchDate || frenchDate.trim() === '') return null;
+// Function to convert various date formats to YYYY-MM-DD (handles DD/MM/YYYY and optional time)
+const convertFrenchDate = (input) => {
+    if (!input || String(input).trim() === '') return null;
+    const value = String(input).trim();
     
-    const parts = frenchDate.split('/');
+    // If already ISO-like, return the date portion
+    if (/^\d{4}-\d{2}-\d{2}/.test(value)) {
+        return value.substring(0, 10);
+    }
+
+    // Strip time if present (e.g., "DD/MM/YYYY HH:MM")
+    const datePart = value.split(/[ T]/)[0];
+
+    // Support DD/MM/YYYY or DD-MM-YYYY
+    let parts = datePart.split('/');
+    if (parts.length !== 3) {
+        parts = datePart.split('-');
+    }
+
     if (parts.length === 3) {
+        // Heuristic: if first part has length 4, it's likely YYYY-MM-DD order
+        if (parts[0].length === 4) {
+            const year = parts[0];
+            const month = parts[1].padStart(2, '0');
+            const day = parts[2].padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
         const day = parts[0].padStart(2, '0');
         const month = parts[1].padStart(2, '0');
-        const year = parts[2];
+        const year = parts[2].replace(/[^0-9]/g, '');
+        if (year.length === 2) {
+            // Assume 20xx for 2-digit years
+            return `20${year}-${month}-${day}`;
+        }
         return `${year}-${month}-${day}`;
     }
     return null;
+};
+
+// Helper to safely extract a value from a row using a list of possible header aliases
+const getValueByAliases = (row, aliases) => {
+    for (const key of aliases) {
+        const value = (row[key] || '').toString().trim();
+        if (value) return value;
+    }
+    return '';
 };
 
 // Function to clean currency amounts
@@ -665,8 +699,13 @@ const buildActionEventsFromSheet = (sheetData, rawEventsMatrix) => {
         const brand = row['Marque'] || '';
         const status = (row['Status'] || '').trim();
         const talent = email ? email.split('@')[0].replace(/[._]/g, ' ') : '';
-        const preview = (row['Preview'] || '').trim();
-        const post = (row['Post'] || '').trim();
+        // Support multiple possible header names for preview/post columns
+        const preview = getValueByAliases(row, [
+            'Preview', 'Préview', 'Previsualisation', 'Prévisualisation', 'Preview Date', 'Date Preview', 'Previsu', 'Pre-View'
+        ]);
+        const post = getValueByAliases(row, [
+            'Post', 'Publication', 'Date Post', 'Date Publication', 'Post Date'
+        ]);
 
         const colorForStatus = (s) => {
             const lower = s.toLowerCase();
