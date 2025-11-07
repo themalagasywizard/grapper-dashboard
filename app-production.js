@@ -665,8 +665,21 @@ const buildActionEventsFromSheet = (sheetData, rawEventsMatrix) => {
         const brand = row['Marque'] || '';
         const status = (row['Status'] || '').trim();
         const talent = email ? email.split('@')[0].replace(/[._]/g, ' ') : '';
-        const preview = (row['Preview'] || '').trim();
-        const post = (row['Post'] || '').trim();
+        
+        // Try multiple column header variations for Preview (Column G) and Post (Column I)
+        // Preview variations: 'Preview', 'Preview Date', 'Date Preview', 'Date de Preview', etc.
+        const preview = (row['Preview'] || row['Preview Date'] || row['Date Preview'] || row['Date de Preview'] || '').trim();
+        // Post variations: 'Post', 'Post Date', 'Date Post', 'Date de Post', etc.
+        const post = (row['Post'] || row['Post Date'] || row['Date Post'] || row['Date de Post'] || '').trim();
+        
+        // Debug: Log first few rows to see what column headers are available
+        if (index < 3) {
+            const availableKeys = Object.keys(row).filter(k => k.toLowerCase().includes('preview') || k.toLowerCase().includes('post'));
+            if (availableKeys.length > 0) {
+                console.log(`Row ${index}: Available Preview/Post columns:`, availableKeys);
+                console.log(`Row ${index}: Preview value:`, preview, 'Post value:', post);
+            }
+        }
 
         const colorForStatus = (s) => {
             const lower = s.toLowerCase();
@@ -677,6 +690,7 @@ const buildActionEventsFromSheet = (sheetData, rawEventsMatrix) => {
         };
 
         const makeEvent = (isoDate, actionType) => {
+            // Preview events: orange (#f59e0b), Post events: blue (#3b82f6)
             const bgColor = actionType === 'Preview' ? '#f59e0b' : actionType === 'Post' ? '#3b82f6' : colorForStatus(status);
             return {
                 id: `evt_${index}_${actionType}`,
@@ -685,21 +699,24 @@ const buildActionEventsFromSheet = (sheetData, rawEventsMatrix) => {
                 backgroundColor: bgColor,
                 borderColor: 'transparent',
                 textColor: '#ffffff',
-                            extendedProps: {
-                brand,
-                status,
-                actionType,
-                email,
-                talent,
-                originalStatus: status // Keep original status from Column H
-            }
+                extendedProps: {
+                    brand,
+                    status,
+                    actionType,
+                    email,
+                    talent,
+                    originalStatus: status // Keep original status from Column H
+                }
             };
         };
 
+        // Process Preview date (Column G) - should be orange
         const dPreview = convertFrenchDate(preview);
         if (dPreview) {
             events.push(makeEvent(dPreview, 'Preview'));
         }
+        
+        // Process Post date (Column I) - should be blue
         const dPost = convertFrenchDate(post);
         if (dPost) {
             events.push(makeEvent(dPost, 'Post'));
@@ -767,6 +784,12 @@ const buildActionEventsFromSheet = (sheetData, rawEventsMatrix) => {
             });
         });
     }
+    
+    // Debug: Log summary of events created
+    const previewCount = events.filter(e => e.extendedProps?.actionType === 'Preview').length;
+    const postCount = events.filter(e => e.extendedProps?.actionType === 'Post').length;
+    console.log(`buildActionEventsFromSheet: Created ${events.length} total events (${previewCount} Preview, ${postCount} Post)`);
+    
     return events;
 };
 
