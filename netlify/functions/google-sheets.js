@@ -21,7 +21,9 @@ exports.handler = async (event, context) => {
         const SPREADSHEET_ID = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
         // Default ranges can be overridden via env
         const CAMPAIGNS_RANGE = process.env.GOOGLE_SHEETS_CAMPAIGNS_RANGE || process.env.GOOGLE_SHEETS_RANGE || 'Global1!A1:AC2000';
-        const LOGIN_RANGE = process.env.GOOGLE_SHEETS_LOGIN_RANGE || 'Mail!A1:B2000'; // Forcing A:B to ensure both columns are read
+        const LOGIN_RANGE = process.env.GOOGLE_SHEETS_LOGIN_RANGE || 'Mail!A1:C2000'; // A:Mail, C:Mot de Passe
+        // Also request column C separately to ensure it's included even if API trims trailing columns
+        const LOGIN_PASSWORD_RANGE = process.env.GOOGLE_SHEETS_LOGIN_PASSWORD_RANGE || 'Mail!C1:C2000'; // Column C only
         const TOOLBOX_RANGE = process.env.GOOGLE_SHEETS_TOOLBOX_RANGE || "'Boite à Outil'!A1:ZZ2000";
         const EVENTS_RANGE = process.env.GOOGLE_SHEETS_EVENTS_RANGE || 'Events!A1:Z2000';
         const USER_BILLING_RANGE = process.env.GOOGLE_SHEETS_USER_BILLING_RANGE || "'Adresse Facturation Talents'!A1:L2000";
@@ -43,7 +45,8 @@ exports.handler = async (event, context) => {
         }
 
         // Use batchGet to fetch all data in one request
-        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values:batchGet?ranges=${encodeURIComponent(CAMPAIGNS_RANGE)}&ranges=${encodeURIComponent(LOGIN_RANGE)}&ranges=${encodeURIComponent(TOOLBOX_RANGE)}&ranges=${encodeURIComponent(EVENTS_RANGE)}&ranges=${encodeURIComponent(USER_BILLING_RANGE)}&ranges=${encodeURIComponent(AGENCY_BILLING_RANGE)}&key=${API_KEY}`;
+        // Include LOGIN_PASSWORD_RANGE separately to ensure column C is read
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values:batchGet?ranges=${encodeURIComponent(CAMPAIGNS_RANGE)}&ranges=${encodeURIComponent(LOGIN_RANGE)}&ranges=${encodeURIComponent(LOGIN_PASSWORD_RANGE)}&ranges=${encodeURIComponent(TOOLBOX_RANGE)}&ranges=${encodeURIComponent(EVENTS_RANGE)}&ranges=${encodeURIComponent(USER_BILLING_RANGE)}&ranges=${encodeURIComponent(AGENCY_BILLING_RANGE)}&key=${API_KEY}`;
 
 
 
@@ -81,20 +84,40 @@ exports.handler = async (event, context) => {
 
         const campaignsValues = data.valueRanges[0]?.values || [];
         const mailValues = data.valueRanges[1]?.values || [];
-        const toolboxValues = data.valueRanges[2]?.values || [];
-        const eventsValues = data.valueRanges[3]?.values || [];
-        const userBillingValues = data.valueRanges[4]?.values || [];
-        const agencyBillingValues = data.valueRanges[5]?.values || [];
+        const mailPasswordValues = data.valueRanges[2]?.values || []; // Column C only
+        const toolboxValues = data.valueRanges[3]?.values || [];
+        const eventsValues = data.valueRanges[4]?.values || [];
+        const userBillingValues = data.valueRanges[5]?.values || [];
+        const agencyBillingValues = data.valueRanges[6]?.values || [];
+
+        // Debug: Log the actual Mail sheet response structure
+        console.log('Mail sheet response - number of rows:', mailValues.length);
+        console.log('Mail password column (C) response - number of rows:', mailPasswordValues.length);
+        if (mailValues.length > 0) {
+            console.log('Mail sheet first row (header) length:', mailValues[0].length);
+            console.log('Mail sheet first row (header) raw:', JSON.stringify(mailValues[0]));
+            if (mailValues.length > 1) {
+                console.log('Mail sheet second row length:', mailValues[1].length);
+                console.log('Mail sheet second row raw:', JSON.stringify(mailValues[1]));
+            }
+        }
+        if (mailPasswordValues.length > 0) {
+            console.log('Mail password column (C) first row:', JSON.stringify(mailPasswordValues[0]));
+            if (mailPasswordValues.length > 1) {
+                console.log('Mail password column (C) second row:', JSON.stringify(mailPasswordValues[1]));
+            }
+        }
 
         // Process login data with header-detected columns
-
-
         const normalize = (s) => (s || '').toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 
         let loginData = [];
         if (mailValues.length > 0) {
             const header = mailValues[0].map(h => normalize(h));
             const rows = mailValues.slice(1);
+            
+            // Extract passwords from the separate column C request
+            const passwordRows = mailPasswordValues.slice(1); // Skip header row
 
             // Find email column: prefer headers containing 'mail' or 'email'
             const emailIdx = header.findIndex(h => h.includes('mail') || h.includes('email'));
@@ -109,11 +132,21 @@ exports.handler = async (event, context) => {
                 loginData = rows
                     .map((row, index) => {
                         const email = (row[emailIdx] || '').toString().trim();
-                        // Only get password if the index was found
-                        const password = passwordIdx > -1 ? (row[passwordIdx] || '').toString().trim() : '';
+                        
+                        // Get password from the separate column C request (mailPasswordValues)
+                        // This ensures we get column C even if the main request trimmed it
+                        let password = '';
+                        if (passwordRows.length > index && passwordRows[index] && passwordRows[index].length > 0) {
+                            // passwordRows[index] is an array with one element (the password from column C)
+                            password = (passwordRows[index][0] || '').toString().trim();
+                        } else {
+                            // Fallback: try to get from row[2] if available
+                            password = row.length > 2 ? (row[passwordIdx] || '').toString().trim() : '';
+                        }
 
+                        // Debug first few rows
                         if (index < 5) {
-
+                            console.log(`Row ${index + 2}: email='${email}', password='${password}', passwordFromColumnC=${passwordRows.length > index && passwordRows[index] ? passwordRows[index][0] : 'N/A'}, hasPassword=${!!password}`);
                         }
 
                         if (!email || !email.includes('@')) return null;
