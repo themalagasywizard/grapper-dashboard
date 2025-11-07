@@ -423,6 +423,9 @@ class GoogleSheetsService {
                 headers.forEach((header, index) => {
                     obj[header] = row[index] || '';
                 });
+                // Also store raw row data and headers for column index access
+                obj._rawRow = row;
+                obj._headers = headers;
                 return obj;
             });
 
@@ -659,6 +662,37 @@ const transformSheetDataToCampaigns = (sheetData) => {
 // Build calendar events for Preview and Post dates with status colors
 const buildActionEventsFromSheet = (sheetData, rawEventsMatrix) => {
     const events = [];
+    
+    // Get headers from first row to find column indices
+    let headers = [];
+    let previewColumnIndex = -1;
+    let postColumnIndex = -1;
+    
+    if (sheetData.length > 0 && sheetData[0]._headers) {
+        headers = sheetData[0]._headers;
+        // Column G is index 6 (0-based), Column I is index 8 (0-based)
+        // Find by index first, then fallback to header name search
+        if (headers.length > 8) {
+            // Column G (index 6) should be Preview
+            const previewHeader = headers[6] || '';
+            // Column I (index 8) should be Post
+            const postHeader = headers[8] || '';
+            
+            previewColumnIndex = 6;
+            postColumnIndex = 8;
+            
+            console.log(`Column G (index 6) header: "${previewHeader}", Column I (index 8) header: "${postHeader}"`);
+        }
+        
+        // Also search by header name as fallback
+        if (previewColumnIndex === -1) {
+            previewColumnIndex = headers.findIndex(h => h && (h.toLowerCase().includes('preview')));
+        }
+        if (postColumnIndex === -1) {
+            postColumnIndex = headers.findIndex(h => h && (h.toLowerCase().includes('post')));
+        }
+    }
+    
     sheetData.forEach((row, index) => {
         // Email is now in 'Talents' column (Column A)
         const email = (row['Talents'] || '').trim();
@@ -666,18 +700,25 @@ const buildActionEventsFromSheet = (sheetData, rawEventsMatrix) => {
         const status = (row['Status'] || '').trim();
         const talent = email ? email.split('@')[0].replace(/[._]/g, ' ') : '';
         
-        // Try multiple column header variations for Preview (Column G) and Post (Column I)
-        // Preview variations: 'Preview', 'Preview Date', 'Date Preview', 'Date de Preview', etc.
-        const preview = (row['Preview'] || row['Preview Date'] || row['Date Preview'] || row['Date de Preview'] || '').trim();
-        // Post variations: 'Post', 'Post Date', 'Date Post', 'Date de Post', etc.
-        const post = (row['Post'] || row['Post Date'] || row['Date Post'] || row['Date de Post'] || '').trim();
+        // Get Preview from Column G (index 6) and Post from Column I (index 8)
+        let preview = '';
+        let post = '';
         
-        // Debug: Log first few rows to see what column headers are available
+        if (row._rawRow && headers.length > 0) {
+            // Use column indices directly
+            preview = (row._rawRow[6] || '').toString().trim(); // Column G
+            post = (row._rawRow[8] || '').toString().trim(); // Column I
+        } else {
+            // Fallback: Try multiple column header variations
+            preview = (row['Preview'] || row['Preview Date'] || row['Date Preview'] || row['Date de Preview'] || '').trim();
+            post = (row['Post'] || row['Post Date'] || row['Date Post'] || row['Date de Post'] || '').trim();
+        }
+        
+        // Debug: Log first few rows to see what values are being read
         if (index < 3) {
-            const availableKeys = Object.keys(row).filter(k => k.toLowerCase().includes('preview') || k.toLowerCase().includes('post'));
-            if (availableKeys.length > 0) {
-                console.log(`Row ${index}: Available Preview/Post columns:`, availableKeys);
-                console.log(`Row ${index}: Preview value:`, preview, 'Post value:', post);
+            console.log(`Row ${index}: Column G (Preview) value: "${preview}", Column I (Post) value: "${post}"`);
+            if (row._rawRow && row._rawRow.length > 8) {
+                console.log(`Row ${index}: Raw row length: ${row._rawRow.length}, Column G index 6: "${row._rawRow[6]}", Column I index 8: "${row._rawRow[8]}"`);
             }
         }
 
